@@ -1,0 +1,146 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright © 2015) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+
+Description:        
+    Decyclers by John Ehlers
+    
+Formula Parameters:                     Default:
+    HP Period                           125
+    K                                   1
+    
+Version:            1.00  07/09/2015
+
+Notes:
+    The related article is copyrighted material. If you are not a subscriber
+    of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+
+var fpArray = new Array();
+
+function preMain(){
+    
+    setStudyTitle("Decycler Oscillator");
+    
+    setCursorLabelName("ZeroLine", 0);
+    setCursorLabelName("DecyclerOsc", 1);
+    
+    setDefaultBarFgColor(Color.grey, 0);
+    
+    setDefaultBarThickness(1, 0);
+    setDefaultBarThickness(2, 1);
+    
+    setShowCursorLabel(false, 0);
+    setShowCursorLabel(true, 1);
+        
+    var x = 0;
+
+    fpArray[x] = new FunctionParameter("fpHPPeriod", FunctionParameter.NUMBER);
+    with(fpArray[x++]){
+        setName("HP Period");
+        setLowerLimit(1);
+        setDefault(125);
+    }
+    
+    fpArray[x] = new FunctionParameter("fpK", FunctionParameter.NUMBER);
+    with(fpArray[x++]){
+        setName("K");
+        setDefault(1);
+    } 
+}
+
+var bInit = false;
+var bVersion = null;
+
+var xClose = null;
+var xHP = null;
+var xDecycle = null;
+var xDecycleOsc = null;
+
+function main(fpHPPeriod, fpK){
+    
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;
+    
+    if (!bInit){
+
+        xClose = close();
+        xHP = efsInternal('Calc_HP', xClose, fpHPPeriod);
+        xDecycle = efsInternal('Calc_Decycle', xClose, xHP);
+        xDecycleOsc = efsInternal('Calc_HP', xDecycle, .5 * fpHPPeriod);
+        
+        bInit = true; 
+    };
+
+    var nClose = xClose.getValue(0);
+    var nDecycleOsc = xDecycleOsc.getValue(0);
+
+    if (nDecycleOsc == null || nClose == null)
+        return;
+
+    var nReturnValue = 100 * fpK * nDecycleOsc / nClose;
+       
+    return [0, nReturnValue];
+}
+
+var nAlpha = null;
+
+function Calc_HP(xSource, nPeriod){
+    
+    nAlpha = (Math.cos(.707*360 / nPeriod * Math.PI / 180) +
+              Math.sin(.707*360 / nPeriod * Math.PI / 180) - 1) /
+              Math.cos(.707*360 / nPeriod * Math.PI / 180); 
+    
+    var nSource = xSource.getValue(0);
+    var nSource1 = xSource.getValue(-1);
+    var nSource2 = xSource.getValue(-2);
+     
+    if (nSource == null || nSource1 == null|| nSource2 == null)
+        return;
+    
+    var nHP_1 = ref(-1);
+    var nHP_2 = ref(-2);
+    
+    var nHP = Math.pow((1 - nAlpha / 2), 2) * (nSource - 2 * nSource1 + nSource2) +
+              2 * (1 - nAlpha) * nHP_1 - Math.pow((1 - nAlpha), 2) * nHP_2;
+      
+    return nHP;
+}
+
+function Calc_Decycle(xSource, xHP){
+    
+    var nSource = xSource.getValue(0);
+    var nHP = xHP.getValue(0);
+
+    if (nHP == null || nSource == null)
+        return;
+    
+    var nDecycle = nSource - nHP;
+
+    return nDecycle;
+}
+
+function verify(){
+    
+    var b = false;
+    
+    if (getBuildNumber() < 779){
+        
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } 
+    else 
+        b = true;
+    
+    return b;
+}

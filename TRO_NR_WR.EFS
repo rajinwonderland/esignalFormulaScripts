@@ -1,0 +1,264 @@
+/****
+
+TRO_NR_WR 1:37 PM 8/27/2006  PLOTS NR4, NR7, WR4, WR7 LINES
+
+Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne,  
+
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+please include this and/or any other comment blocks and a 
+description of any changes you make.
+
+
+ATTN ESIGNAL: I DID NOT POST THIS CODE ON YOUR FORUM
+              I AM NOT RESPONSIBLE FOR ANY ESIGNAL FORUM RULE VIOLATIONS.
+
+****/
+
+/********************
+Alexis C. Montenegro © April 2004                         
+Use and or modify this code freely. If you redistribute it
+please include this and or any other comment blocks and a 
+description of any changes you make. .
+**************************/
+
+debugClear(); 
+
+
+
+function preMain() {
+
+    setPriceStudy(true);
+    setStudyTitle("TRO_NR_WR");
+    setCursorLabelName("Top-H ", 0);
+    setCursorLabelName("Top-L ", 1);
+    setCursorLabelName("Bot-H ", 2);
+    setCursorLabelName("Bot-L", 3);
+    setCursorLabelName("SH B/O Bot", 4);
+    setCursorLabelName("PrevClose", 5);
+    setCursorLabelName("PrevMid", 6);
+    setCursorLabelName("MidPoint", 7);
+
+
+    setDefaultBarFgColor(Color.blue,0);
+    setDefaultBarFgColor(Color.navy,1);
+    setDefaultBarFgColor(Color.red,2);
+    setDefaultBarFgColor(Color.maroon,3);
+    setDefaultBarFgColor(Color.RGB(255, 173, 92),4);
+    setDefaultBarFgColor(Color.RGB(0, 0xCC, 0),5);
+    setDefaultBarFgColor(Color.RGB(255, 173, 92),6);
+    setDefaultBarFgColor(Color.RGB(0, 0xCC, 0),7);
+
+    setDefaultBarThickness(2,0);
+    setDefaultBarThickness(2,1);
+    setDefaultBarThickness(2,2);
+    setDefaultBarThickness(2,3);
+    setDefaultBarThickness(2,4);
+    setDefaultBarThickness(2,5);
+    setDefaultBarThickness(2,6);
+    setDefaultBarThickness(2,7);
+
+    setPlotType(PLOTTYPE_FLATLINES,0);  
+    setPlotType(PLOTTYPE_FLATLINES,1);
+    setPlotType(PLOTTYPE_FLATLINES,2);
+    setPlotType(PLOTTYPE_FLATLINES,3);
+    setPlotType(PLOTTYPE_FLATLINES,4);
+    setPlotType(PLOTTYPE_FLATLINES,5);
+    setPlotType(PLOTTYPE_FLATLINES,6);
+    setPlotType(PLOTTYPE_FLATLINES,7);
+
+}
+
+
+//var lowSoFar  = Number.MAX_VALUE;
+//var highSoFar = Number.MIN_VALUE;
+
+var NR7 = null;
+var WR7 = null;
+
+var vOpen = null;
+var vOpen1 = null;
+var vHigh = null;
+var vHigh1 = null;
+var vLow = null;
+var vLow1 = null;
+var vClose1 = null;
+
+var vMid = null;
+var vMid1 = null;
+
+var bInit = false; 
+
+        var bHigh4 = null;  
+        var bLow4  = null; 
+
+        var bHigh7 = null;  
+        var bLow7  = null; 
+
+askForInput();
+
+
+
+
+    var iDecimals = new FunctionParameter("iDecimals", FunctionParameter.NUMBER);
+	iDecimals.setDefault( 2 ); 
+
+    var iAlert = new FunctionParameter("iAlert", FunctionParameter.BOOLEAN);
+	iAlert.setDefault( true );
+
+
+    var iColorLong = new FunctionParameter("iColorLong", FunctionParameter.COLOR);
+        iColorLong.setDefault( Color.RGB(215,255,195));
+
+    var iColorShort = new FunctionParameter("iColorShort", FunctionParameter.COLOR);
+        iColorShort.setDefault( Color.RGB(254,233,233));
+
+    var iButtonX = new FunctionParameter("iButtonX", FunctionParameter.NUMBER);
+	iButtonX.setDefault( 50 ); 
+
+    var iButtonY = new FunctionParameter("iButtonY", FunctionParameter.NUMBER);
+	iButtonY.setDefault( 15 ); 
+
+
+
+function main( iDecimals, iAlert ,iColorLong , iColorShort, iButtonX , iButtonY ) {
+
+ //   if (close(-1)==null) 
+   //     return;
+
+ 
+  // initialize upon first loading formula
+
+    if(getBarState() == BARSTATE_ALLBARS) {
+        drawTextPixel( iButtonX, iButtonY , " TRO_NR_WR @URL=EFS:editParameters", Color.white, Color.green, 
+            Text.RELATIVETOLEFT|Text.RELATIVETOBOTTOM|Text.ONTOP|Text.BOLD|Text.BUTTON, 
+            "Comic Sans MS", 13, "UpExp"); 
+        vDate = new Date();
+        vInterval = getInterval();
+        vSymbol = getSymbol().toUpperCase();
+    
+        // for RTH, eg, to convert, ES Z2 to ES Z2=2
+        var rootSymbol = vSymbol.substring(0,3);
+        if (rootSymbol == "ES " || rootSymbol == "NQ ") 
+            if ( vSymbol.indexOf("=2") == -1 ) vSymbol += "=2";
+    
+        vSymbol += ",D";
+ //       return null;
+    }
+
+    
+if ( bInit == false ) { 
+
+        bHigh7 = upperDonchian( 7 , inv("D") );  
+        bLow7  = lowerDonchian( 7 , inv("D") ); 
+
+        bHigh4 = upperDonchian( 4 , inv("D") );  
+        bLow4  = lowerDonchian( 4 , inv("D") ); 
+
+        bInit = true; 
+
+   } 
+
+
+        var vHigh4 = bHigh4.getValue(0);   
+        var vLow4  = bLow4.getValue(0);  
+
+        var vHigh7 = bHigh7.getValue(0);   
+        var vLow7  = bLow7.getValue(0);  
+
+
+   
+    
+
+// NR WR PROCESSING 
+
+
+
+	var vHigh     = high( 0, inv("D") );
+	var vLow      = low( 0, inv("D") );
+	var vPrevHigh = high(-1, inv("D") );
+	var vPrevLow  = low(-1, inv("D") );
+
+	if(vHigh == null || vLow == null || vPrevHigh == null || vPrevLow == null) {
+		return;
+	}
+
+
+    if (vHigh > vPrevHigh && vLow > vPrevLow) {
+        setPriceBarColor(Color.lime);
+    } else if (vHigh < vPrevHigh & vLow < vPrevLow) {
+        setPriceBarColor(Color.red);
+    } else if (vHigh > vPrevHigh && vLow < vPrevLow) {
+        setPriceBarColor(Color.blue);
+    } else if (vHigh < vPrevHigh && vLow > vPrevLow) {
+        setPriceBarColor(Color.khaki);
+    }
+    
+
+
+//    if (getInterval() == "D" || getInterval() == "W" || getInterval() == "M") {
+        // check for NR7 or WR7 days.
+
+
+        var vHigh = getValue("High", 0, -7);
+        var vLow  = getValue("Low", 0, -7);
+        var i;
+        NR7 = 0;
+        WR7 = 0;
+        
+        for(i = 0; i < 7; i++){
+            WR7 = Math.max(WR7, vHigh[i] - vLow[i]);
+            if(i == 0)
+                NR7 = vHigh[i] - vLow[i];
+            else
+                NR7 = Math.min(NR7, vHigh[i] - vLow[i]);
+        }
+
+/*
+        if(vHigh[0] - vLow[0] == NR7) {
+            drawShapeAbsolute(getCurrentBarIndex(), high() + NR7/2, Shape.DIAMOND, "", Color.red, Shape.TOP, getCurrentBarIndex());
+        } else if(vHigh[0] - vLow[0] == WR7) {
+            drawShapeAbsolute(getCurrentBarIndex(), high() + NR7/2, Shape.DIAMOND, "", Color.blue, Shape.TOP, getCurrentBarIndex());
+        }
+*/
+
+//    } 
+
+
+
+
+vTopH      = Math.max( vHigh7, vHigh4 );
+vTopL      = Math.min( vHigh7, vHigh4 );
+
+vBotH      = Math.max( vLow7, vLow4 );
+vBotL      = Math.min( vLow7, vLow4 );
+
+
+setBarBgColor(iColorLong ,0, vTopL , vTopH );
+
+setBarBgColor(iColorShort, 1, vBotL , vBotH );
+
+
+return new Array(  vTopH , vTopL , vBotH , vBotL  ) ;
+}
+
+
+
+
+function editParameters() {
+    askForInput("TRO_NR_WR");
+    return;
+}
+
+// rnd function - round to two places
+function rnd(value, iDecimals ) { // Round the price to iDecimals digits
+
+value =  value * Math.pow(10, iDecimals);
+
+    return Math.round(value, iDecimals) / Math.pow(10, iDecimals);
+}
+
+
+

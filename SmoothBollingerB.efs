@@ -1,0 +1,234 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2010. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    Smoothing The Bollinger %b
+    
+Version:            1.00  03/11/2010
+
+Formula Parameters:                     Default:
+    %b Period                           18
+    Tema Average                        8
+    Standard Deviation High             1.6
+    Standard Deviation Low              1.6
+    Standard Deviation Period           63
+    
+Notes:
+    The related article is copyrighted material. If you are not a subscriber
+    of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+var fpArray = new Array();
+var bInit = false;
+var bVersion = null;
+
+function preMain() {
+    setPriceStudy(false);
+    setShowCursorLabel(true);
+    setShowTitleParameters(false);
+    setStudyTitle("Smoothing The Bollinger %b");
+    setCursorLabelName("SVE BB%b", 0);
+    setDefaultBarFgColor(Color.blue, 0);
+    setPlotType(PLOTTYPE_LINE, 0);
+    setDefaultBarThickness(2, 0);
+    setCursorLabelName("UP Level", 1);
+    setDefaultBarFgColor(Color.red, 1);
+    setPlotType(PLOTTYPE_LINE, 1);
+    setDefaultBarThickness(1, 1);
+    setCursorLabelName("Down Level", 2);
+    setDefaultBarFgColor(Color.red, 2);
+    setPlotType(PLOTTYPE_LINE, 2);
+    setDefaultBarThickness(1, 2);
+    var x=0;
+    fpArray[x] = new FunctionParameter("Period", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("%b Period");
+        setLowerLimit(1);		
+        setUpperLimit(100);		
+        setDefault(18);
+    }    
+    fpArray[x] = new FunctionParameter("TeAv", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("Tema Average");
+        setLowerLimit(1);		
+        setUpperLimit(30);		
+        setDefault(8);
+    }        
+    fpArray[x] = new FunctionParameter("afwh", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("Standard Deviation High");
+        setLowerLimit(0.1);		
+        setUpperLimit(5);		
+        setDefault(1.6);
+    }        
+    fpArray[x] = new FunctionParameter("afwl", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("Standard Deviation Low");
+        setLowerLimit(0.1);		
+        setUpperLimit(5);		
+        setDefault(1.6);
+    }        
+    fpArray[x] = new FunctionParameter("afwper", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("Standard Deviation Period");
+        setLowerLimit(1);		
+        setUpperLimit(200);		
+        setDefault(63);
+    }            
+}
+
+var xSVE_BB = null;
+var xStdev_SVE_BB = null;
+
+function main(Period, TeAv, afwh, afwl, afwper) {
+var nBarState = getBarState();
+var nSVE_BB = 0;
+var nStdev_SVE_BB = 0;
+var nHLevel = 0;
+var nLLevel = 0;
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;   
+    if (nBarState == BARSTATE_ALLBARS) {
+        if (Period == null) Period = 18;
+        if (TeAv == null) TeAv = 8;
+        if (afwh == null) afwh = 1.6;
+        if (afwl == null) afwl = 1.6;
+        if (afwper == null) afwper = 63;        
+    }    
+    if (!bInit) { 
+        addBand(50, PS_SOLID, 1, Color.blue, "Middle Line");    
+        xSVE_BB = efsInternal("Calc_SVE_BB", Period, TeAv);
+        xStdev_SVE_BB = efsInternal("StdDev", xSVE_BB, afwper);
+        bInit = true; 
+    }
+    nSVE_BB = xSVE_BB.getValue(0);
+    nStdev_SVE_BB = xStdev_SVE_BB.getValue(0);
+    if (nSVE_BB == null || nStdev_SVE_BB == null) return;
+    nHLevel = 50 + afwh * nStdev_SVE_BB;
+    nLLevel = 50 - afwl * nStdev_SVE_BB;;
+    return new Array(nSVE_BB, nHLevel, nLLevel);
+}
+
+var bSecondInit = false;
+var xOHLC4 = null;
+var xhaClose = null;
+var xhaC = null;
+var xTMA1 = null;
+var xTMA2 = null;
+var xDiff = null;
+var xZlHA = null;
+var xTemaZlHA = null;
+var xStdevTemaZlHA = null;
+var xWMATemaZlHA = null;
+
+function Calc_SVE_BB(Period, TeAv) {
+var nTemaZlHA = 0;
+var nStdevTemaZlHA = 0;
+var nWMATemaZlHA = 0;
+var nRes = 0;
+    if (bSecondInit == false) {
+        xOHLC4 = ohlc4();
+        xhaOpen = efsInternal("Calc_haOpen", xOHLC4);
+        xhaC = efsInternal("Calc_haC", xOHLC4, xhaOpen);
+        xTMA1 = efsInternal("TEMA", xhaC, TeAv);
+        xTMA2 = efsInternal("TEMA", xTMA1, TeAv);
+        xDiff = efsInternal("Calc_Diff", xTMA1, xTMA2);
+        xZlHA = efsInternal("Calc_ZlHA", xTMA1, xDiff);
+        xTemaZlHA = efsInternal("TEMA", xZlHA, TeAv);
+        xStdevTemaZlHA = efsInternal("StdDev", xTemaZlHA, Period);
+        xWMATemaZlHA = wma(Period, xTemaZlHA);
+        bSecondInit = true;
+    }
+    nTemaZlHA = xTemaZlHA.getValue(0);
+    nStdevTemaZlHA = xStdevTemaZlHA.getValue(0);
+    nWMATemaZlHA = xWMATemaZlHA.getValue(0);
+    nRes = (nTemaZlHA + 2 * nStdevTemaZlHA - nWMATemaZlHA) / (4 * nStdevTemaZlHA) * 100;
+    if (nRes == null) return;
+    return nRes;
+}
+
+var xEMA1 = null;
+var xEMA2 = null;
+var xEMA3 = null;
+var bInitTEMA = false; 
+        
+function TEMA(xPrice, Length) {
+var nTEMA = 0;
+    if ( bInitTEMA == false ) { 
+        xEMA1 = ema(Length, xPrice);
+        xEMA2 = ema(Length, xEMA1);
+        xEMA3 = ema(Length, xEMA2);        
+        bInitTEMA = true; 
+    } 
+    if (xEMA1.getValue(0) == null || xEMA2.getValue(0) == null || xEMA3.getValue(0) == null) return;
+    nTEMA = 3 * xEMA1.getValue(0) - 3 * xEMA2.getValue(0) + xEMA3.getValue(0);
+    return nTEMA;
+}
+
+function Calc_haOpen(xOHLC4) {
+var nRes1 = 0;
+var nRef = ref(-1);
+    if (nRef == null) nRef = 1;
+    nRes1 = (nRef + xOHLC4.getValue(-1)) / 2 ;
+    if (nRes1 == null) return;
+    return nRes1;
+}
+
+function Calc_haC(xOHLC4, xhaOpen) {
+var nRes2 = 0;
+    nRes2 = (xOHLC4.getValue(0) + xhaOpen.getValue(0) + Math.max(high(0), xhaOpen.getValue(0)) + Math.min(low(0), xhaOpen.getValue(0))) / 4;
+    if (nRes2 == null) return;
+    return nRes2;
+}
+
+function Calc_Diff(xTMA1, xTMA2) {
+var nRes = 0;
+    nRes = xTMA1.getValue(0) - xTMA2.getValue(0);
+    if (nRes == null) return;
+    return nRes;
+}
+
+function Calc_ZlHA(xTMA1, xDiff) {
+var nRes = 0;
+    nRes = xTMA1.getValue(0) + xDiff.getValue(0);
+    if (nRes == null) return;
+    return nRes;
+}
+
+function StdDev(DataArray, Period) {
+ var sum = 0;
+ var avg = 0;
+ var nRes = 0;
+    for (var barsBack = Period-1; barsBack >= 0; barsBack--) {
+     sum += DataArray.getValue(-barsBack);
+   }
+    avg = sum / Period;
+    sum = 0;
+    for (var barsBack = Period - 1; barsBack >= 0; barsBack--) {
+      sum += (DataArray.getValue(-barsBack) - avg) * (DataArray.getValue(-barsBack) - avg);
+    }
+    nRes = Math.sqrt(sum / Period);
+    return nRes; 
+}
+
+function verify() {
+    var b = false;
+    if (getBuildNumber() < 779) {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } else {
+        b = true;
+    }
+    return b;
+}

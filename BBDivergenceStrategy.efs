@@ -1,0 +1,330 @@
+/*********************************
+Provided By:  
+   Novvum Consulting Group. All rights reserved
+   
+Description:        
+    Trading The Loonie by Markos Katsanos
+
+Formula Parameters:                     Default:
+Length BB Divergence                    20
+Secondary Symbol                        CL #F 
+Long Trend Color                        green
+Short Trend Color                       red
+
+Version:            1.00  10/08/2015
+
+Notes:
+   The following formula script is based off the publications and works of Markos Katsanos and was interpreted by Raj K Singh into EFS. 
+
+**********************************/
+
+var fpArray = new Array(); 
+var
+function preMain(){
+
+    setStudyTitle("BBDivergenceStrategy");
+    setPriceStudy(true);
+    setIntervalsBackfill(true);
+    
+    var x = 0;
+
+    fpArray[x] = new FunctionParameter("fpLength", FunctionParameter.NUMBER);
+    with(fpArray[x++]){
+        setName("Length BB Divergence");
+        setLowerLimit(1); 
+        setDefault(20);
+    }
+
+    fpArray[x] = new FunctionParameter("fpSecondarySymbol", FunctionParameter.STRING);
+    with(fpArray[x++]){
+        setName("Secondary Symbol");    
+        setDefault('CL #F');
+    }
+
+    fpArray[x] = new FunctionParameter("fpLongColor", FunctionParameter.COLOR);
+    with(fpArray[x++]){
+        setName("Long Color");    
+        setDefault(Color.green);
+    }
+    
+    fpArray[x] = new FunctionParameter("fpShortColor", FunctionParameter.COLOR);
+    with(fpArray[x++]){
+        setName("Short Color");    
+        setDefault(Color.red);
+    }
+}
+ 
+var bInit = false;
+var bVersion = null;
+
+var xClose = null;
+var xSecClose = null;
+
+var xLow = null;
+var xHigh = null;
+var xOpen = null;
+
+var xBol = null;
+var xSecBol = null;
+
+var xDiverg = null;
+
+var xHHV = null;
+var xHighHHV = null;
+var xLLV = null;
+var xLowLLV = null;
+var xSecLLV = null;
+
+var xROC = null;
+var xSecROC = null;
+
+var xCorrelEntry = null;
+var xCorrelExit = null;
+
+var xSecSMA = null;
+
+var xMACD = null;
+var xSignal = null;
+var xStoch = null;
+
+var nTagID = 0;
+
+var nDefLotSize = null;
+
+function main(fpLength, fpSecondarySymbol, fpLongColor, fpShortColor){
+
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;
+
+    if (!bInit){
+        
+        xClose = close();
+        xSecClose = close(sym(fpSecondarySymbol));
+              
+        xLow = low();
+        xHigh = high();
+        xOpen = open();
+        
+        xBol = efsInternal('Calc_Bol', fpLength, xClose);
+        xSecBol = efsInternal('Calc_Bol', fpLength, xSecClose);
+        
+        xDiverg = efsInternal('Calc_Div', xBol, xSecBol);
+        
+        xHHV = hhv(3, xDiverg);
+        xHighHHV = hhv(15, xHigh);
+        xLLV = llv(3, xDiverg);
+        xLowLLV = llv(15, xLow);
+        xSecLLV = llv(4, xSecClose);
+        
+        xROC = roc(2);
+        xSecROC = roc(3, xSecClose);
+        
+        xCorrelEntry = efsInternal("Calc_Correlation", 20, xClose, xSecClose);
+        xCorrelExit = efsInternal("Calc_Correlation", 60, xClose, xSecClose);
+        
+        xSecSMA = sma(40, xSecClose);
+        
+        xMACD = macd(12, 26, 9);
+        xSignal = macdSignal(12, 26, 9);
+        xStoch = stochD(30, 1, 3);
+        
+        bInit = true; 
+    }
+
+    if (isLastBarOnChart()) return; 
+
+    var nDiverg = xDiverg.getValue(0);
+    var nPrevDiverg = xDiverg.getValue(-1);
+        
+    var nClose = xClose.getValue(0);
+    var nSecClose = xSecClose.getValue(0);
+    
+    var nHHV = xHHV.getValue(0);
+    var nHighHHV = xHighHHV.getValue(-1);
+    var nLLV = xLLV.getValue(0);
+    var nLowLLV = xLowLLV.getValue(-1);
+    var nSecLLV = xSecLLV.getValue(0);
+    
+    var nROC = xROC.getValue(0);
+    var nSecROC = xSecROC.getValue(0);
+    
+    var nSecSMA = xSecSMA.getValue(0);
+    var nPrev2SecSMA = xSecSMA.getValue(-2);
+    
+    var nCorrelEntry = xCorrelEntry.getValue(0);
+    var nCorrelExit = xCorrelExit.getValue(0);
+    
+    var nStoch = xStoch.getValue(0);
+       
+    if (nDiverg == null || nPrevDiverg == null || nHHV == null || nHighHHV == null ||
+        nLLV == null || nLowLLV == null || nSecLLV == null || nROC == null ||  nSecROC == null ||
+        nSecSMA == null || nPrev2SecSMA == null || nCorrelEntry == null || nCorrelExit == null || 
+        nStoch == null)
+        return;
+    
+    nDefLotSize = Strategy.getDefaultLotSize();
+    
+    var nPrice = xOpen.getValue(1);
+    
+    if (!Strategy.isLong()){
+        if ((nHHV > 20) && (nDiverg < nPrevDiverg) && (nROC > 0) && (nSecSMA > nPrev2SecSMA) && (nCorrelEntry > -.4)){
+            
+            Strategy.doLong("Entry Long", Strategy.MARKET, Strategy.NEXTBAR, Strategy.DEFAULT);
+            drawShapeRelative(1, BelowBar1, Shape.UPTRIANGLE, null, fpLongColor, Text.PRESET, nTagID++);
+            drawTextRelative(1, BelowBar2, "Entry Long", fpLongColor, null, Text.PRESET|Text.CENTER|Text.BOLD, null, null, nTagID++);
+            drawTextRelative(1, BelowBar3, nDefLotSize + " @ " + formatPriceNumber(nPrice), fpLongColor, null, Text.PRESET|Text.CENTER|Text.BOLD, null, null, nTagID++);
+        }
+    }
+
+    if (Strategy.isLong()){
+        if ((crossAbove(xSignal, xMACD) && (nStoch > 85)) ||  
+            (nLLV < -20 && nSecROC < -3) ||
+            (nClose < nLowLLV && nCorrelExit < -.4)){
+                
+            Strategy.doSell("Exit Long", Strategy.MARKET, Strategy.NEXTBAR, Strategy.DEFAULT);
+            drawShapeRelative(1, AboveBar1, Shape.SQUARE, null, fpShortColor, Text.PRESET, nTagID++);
+            drawTextRelative(1, AboveBar2, "Exit Long", fpShortColor, null, Text.PRESET|Text.CENTER|Text.BOLD, null, null, nTagID++);
+            drawTextRelative(1, AboveBar3, nDefLotSize + " @ " + formatPriceNumber(nPrice), fpShortColor, null, Text.PRESET|Text.CENTER|Text.BOLD, null, null, nTagID++);
+        }
+    }
+     
+    if (!Strategy.isShort()){
+        if ((nLLV < -20) && (nDiverg > nPrevDiverg) && (nROC < 0) && (nSecSMA < nPrev2SecSMA) && (nCorrelEntry > -.4)){
+    
+           Strategy.doShort("Entry Short", Strategy.MARKET, Strategy.NEXTBAR, Strategy.DEFAULT);
+           drawShapeRelative(1, AboveBar1, Shape.DOWNTRIANGLE, null, fpShortColor, Text.PRESET, nTagID++);
+           drawTextRelative(1, AboveBar2, "Entry Short", fpShortColor, null, Text.PRESET|Text.CENTER|Text.BOLD, null, null, nTagID++);
+           drawTextRelative(1, AboveBar3, nDefLotSize + " @ " + formatPriceNumber(nPrice), fpShortColor, null, Text.PRESET|Text.CENTER|Text.BOLD, null, null, nTagID++); 
+        }
+    }
+  
+    if (Strategy.isShort()){
+        if ((crossAbove(xMACD, xSignal) && (nStoch < 25) && nSecClose >= (1 + 4 / 100) * nSecLLV ) ||
+            (nHHV > 20 && nSecROC > 4.5) ||
+            (nClose > nHighHHV && nCorrelExit < -.4)){
+                
+            Strategy.doCover("Exit Short", Strategy.MARKET, Strategy.NEXTBAR, Strategy.DEFAULT);
+            drawShapeRelative(1, BelowBar1, Shape.SQUARE, null, fpLongColor, Text.PRESET, nTagID++);
+            drawTextRelative(1, BelowBar2, "Exit Short", fpLongColor, null, Text.PRESET|Text.CENTER|Text.BOLD, null, null, nTagID++);
+            drawTextRelative(1, BelowBar3, nDefLotSize + " @ " + formatPriceNumber(nPrice), fpLongColor, null, Text.PRESET|Text.CENTER|Text.BOLD, null, null, nTagID++);
+        }
+    }
+}
+
+function crossAbove(xSource1, xSource2){
+        
+    var bReturnValue = false;
+    
+    var nSource1 = xSource1.getValue(0);
+    var nSource2 = xSource2.getValue(0);
+    
+    if (nSource1 > nSource2) {
+       
+        var i = -1;
+    
+        while (!bReturnValue){
+        
+            var nPrevSource1 = xSource1.getValue(i);
+            var nPrevSource2 = xSource2.getValue(i);
+        
+            if (nPrevSource1 == null || nPrevSource2 == null)
+                break;
+                
+            if (nPrevSource1 != nPrevSource2){
+                if (nPrevSource2 > nPrevSource1)
+                     bReturnValue = true; 
+                break;
+            }
+            i--;
+        }
+    }
+
+    return bReturnValue;
+} 
+
+var xBolSMA = null;
+var xSTDDev = null;
+var bInitInt = false;
+
+function Calc_Bol(nLength, xSource){
+    
+    if (!bInitInt){
+        xBolSMA = sma(nLength, xSource);
+        xSTDDev = stdDev(nLength, xSource);
+        
+        bInitInt = true;
+    }
+    
+    var nSource = xSource.getValue(0);
+    var nBolSMA = xBolSMA.getValue(0);
+    var nSTDDev = xSTDDev.getValue(0);
+    
+    if (nSource == null || nBolSMA == null || nSTDDev == null)
+        return;
+    
+    var nBol = 1 + ((nSource - nBolSMA + 2 * nSTDDev) / (4 * nSTDDev + .0001));
+    
+    return nBol;
+}
+
+function Calc_Div(xBol1, xBol2){
+      
+    var nBol1 = xBol1.getValue(0);
+    var nBol2 = xBol2.getValue(0);
+
+    if (nBol1 == null || nBol2 == null)
+        return;
+    
+    nDiverg = (nBol2 - nBol1) / nBol1 * 100 ;
+    
+    return nDiverg;
+}
+
+var xCorSMA1 = null;
+var xCorSMA2 = null;
+
+function Calc_Correlation(nLength, xSource1, xSource2){
+
+    if (getBarState() == BARSTATE_ALLBARS){
+        xCorSMA1 = sma(nLength, xSource1);
+        xCorSMA2 = sma(nLength, xSource2);
+    }
+
+    var nSX = xCorSMA1.getValue(0);
+    var nSY = xCorSMA2.getValue(0);
+
+    if (nSX == null || nSY == null)
+        return;
+    
+    var nCor1 = null;
+    var nCor2 = null;
+    var nCor3 = null;
+
+    for (var i = 0; i < nLength; i++){
+        var nX = xSource1.getValue(-i);
+        var nY = xSource2.getValue(-i);
+        nCor1 += (nX - nSX) * (nY - nSY);
+        nCor2 += (nX - nSX) * (nX - nSX);
+        nCor3 += (nY - nSY) * (nY - nSY);
+    }
+
+    var nCorrelationRes = nCor1 / Math.sqrt(nCor2) / Math.sqrt(nCor3);
+
+    return nCorrelationRes;
+}
+
+function verify() {
+    var b = false;
+    if (getBuildNumber() < 779) {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "You have an older version of eSignal and will need to upgrade. Upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade now! thanks RAJ");
+        return b;
+    } else {
+        b = true;
+    }
+    return b;
+}

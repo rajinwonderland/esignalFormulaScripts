@@ -1,0 +1,110 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2009. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    Trend Factor 
+    
+Version:            1.0  06/15/2009
+ 
+Formula Parameters:                     Default:
+    Length                              10
+    Source of Price                     Close
+    
+Notes:
+
+**********************************/
+var fpArray = new Array();
+var bInit = false;
+
+function preMain(){
+    setPriceStudy(false);
+    setShowCursorLabel(true);
+    setShowTitleParameters(false);
+    setStudyTitle("Trend Factor");
+    setCursorLabelName("Trend Factor", 0);
+    setDefaultBarFgColor(Color.black, 0);
+    setPlotType(PLOTTYPE_HISTOGRAM, 0);
+    setDefaultBarThickness(2, 0);
+    var x = 0;
+    fpArray[x] = new FunctionParameter("Length", FunctionParameter.NUMBER);
+    with(fpArray[x++]) {
+        setLowerLimit(1);
+        setDefault(10);
+    }    
+    fpArray[x] = new FunctionParameter("sPrice", FunctionParameter.STRING);
+	with(fpArray[x++]){
+        setName("Source of Price");
+        addOption("open"); 
+        addOption("high");
+        addOption("low");
+        addOption("close");
+        addOption("hl2");
+        addOption("hlc3");
+        addOption("ohlc4"); 
+        setDefault("close"); 
+    }    
+}
+
+var xTF = null;
+
+function main(Length, sPrice) {
+var nBarState = getBarState();
+var nTF = 0;
+    if (nBarState == BARSTATE_ALLBARS) {
+        if(Length == null) Length = 10;
+        if(sPrice == null) sPrice = "close";
+	}
+	if (bInit == false) {
+        addBand(0, PS_SOLID, 1, Color.black, "Zero");	
+        xTF = efsInternal("Calc_TF", Length, sPrice);
+        bInit = true;
+	}
+    nTF = xTF.getValue(0);
+    if (nTF == null) return;
+    if (nTF > 0) setBarFgColor(Color.green, 0);
+    if (nTF < 0) setBarFgColor(Color.red, 0);    
+	return nTF;
+}
+
+var bSecondInit = false;
+var xPriceV = null;
+
+function Calc_TF(Length, sPrice) {
+var nRes = 0;
+var nRef = ref(-1);
+var nTF = 0;
+    if (bSecondInit == false) {
+        xPriceV = efsInternal("Calc_PriceV", Length, sPrice);
+        bSecondInit = true;
+    }
+    if (xPriceV.getValue(-1) == null) return;
+    nTF =0.5 * Math.log((1 + xPriceV.getValue(0))/(1 - xPriceV.getValue(0))) + 0.5 * nRef;
+    return nTF;
+}
+
+var bThirdInit = false;
+var xHH = null;
+var xLL = null;
+var xPrice = null;
+
+function Calc_PriceV(Length, sPrice) {
+var nRes = 0;
+var nRef = ref(-1);
+var nValue = 0;
+    if (bThirdInit == false) {
+        xHH = upperDonchian(Length);
+        xLL = lowerDonchian(Length);
+        xPrice = eval(sPrice)();
+        bThirdInit = true;
+    }
+    if (xPrice.getValue(-2) == null) return;
+    nValue=0.33 * 2 * ((xPrice.getValue(0) - xLL.getValue(0)) / (xHH.getValue(0) - xLL.getValue(0)) - 0.5) + 0.67 * nRef;
+    nRes= Math.min(Math.max(nValue, -0.999), 0.999);
+    return nRes;
+}

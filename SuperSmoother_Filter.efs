@@ -1,0 +1,101 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright © 2013) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+
+Description:        
+    The Super Smoother Filter by John F. Ehlers
+    
+Version:            1.00  11/07/2013
+
+Notes:
+    The related article is copyrighted material. If you are not a subscriber
+    of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+
+function preMain()
+{   
+    setStudyTitle("SuperSmoother_Filter");
+}
+
+var bInit = false;
+var bVersion = null;
+
+var xFilt = null;
+
+function main() 
+{
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;
+
+    if (!bInit)
+    {                   
+        xFilt = efsInternal("Calc_FiltSeries");
+
+        bInit = true;
+    }
+
+    var nFilt = xFilt.getValue(0);
+
+    return nFilt;
+}
+
+var xClose = null;
+
+var a1 = 0;
+var b1 = 0;
+var c1 = 0;
+var c2 = 0;
+var c3 = 0;
+
+function Calc_FiltSeries()
+{
+    if (getBarState() == BARSTATE_ALLBARS)
+    {
+        xClose = close();
+
+        a1 = Math.exp(-1.414 * 3.14159 / 10);
+        b1 = 2 * a1 * Math.cos((1.414 * 180 / 10) * Math.PI / 180);
+        c2 = b1;
+        c3 = -a1 * a1;
+        c1 = 1 - c2 - c3;
+    } 
+
+    var nClose_0 = xClose.getValue(0);
+    var nClose_1 = xClose.getValue(-1);
+
+    if (nClose_1 == null)
+        return; 
+
+    var nFilt_1 = ref(-1);
+    var nFilt_2 = ref(-2);  
+
+    var nReturnValue = c1 * (nClose_0 + nClose_1) / 2 + c2 * nFilt_1 + c3 * nFilt_2;
+
+    return nReturnValue;
+}
+
+function verify() 
+{
+    var b = false;
+    if (getBuildNumber() < 779) 
+    {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } 
+    else 
+    {
+        b = true;
+    }
+
+    return b;
+}

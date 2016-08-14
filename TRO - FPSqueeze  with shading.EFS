@@ -1,0 +1,193 @@
+/****  
+FPSqueeze   INDICATOR 10:31 PM 2/17/2007
+
+Modifying Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne, 
+  
+
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+please include this and/or any other comment blocks and a 
+description of any changes you make.
+
+Copyright 2007, All Rights Reserved. Code may be modified for 
+personal use only. No portion of this code can be sold or
+otherwise redistributed without the express written consent of
+the author, Avery T. Horton, Jr.
+
+
+ATTN ESIGNAL: I DID NOT POST THIS CODE ON YOUR FORUM
+              I AM NOT RESPONSIBLE FOR ANY ESIGNAL FORUM RULE VIOLATIONS.
+
+****/
+
+
+
+function preMain() { 
+setStudyTitle("TRO - FPSqueeze"); 
+setCursorLabelName("TRO - FPSqueeze", 0); 
+setDefaultBarFgColor(Color.blue, 0); 
+setPlotType(PLOTTYPE_HISTOGRAM,0); 
+setDefaultBarThickness(4,0); 
+
+//addBand(0,PS_SOLID,1,Color.black,"zero"); 
+
+var BBlow=null; 
+var BBhigh=null; 
+var KClow=null; 
+var KChigh=null; 
+var Mom=null;
+var Mom1=null;
+var vHigh=null; 
+var vLow=null; 
+var vClose=null; 
+
+    var iAlert = new FunctionParameter("iAlert", FunctionParameter.BOOLEAN);
+	iAlert.setDefault( true );
+
+
+var fp1 = new FunctionParameter("nMA", FunctionParameter.NUMBER); 
+fp1.setName("Squeeze Moving Average"); 
+fp1.setLowerLimit(1); 
+fp1.setDefault(20); 
+
+var fp2 = new FunctionParameter("nSD", FunctionParameter.NUMBER); 
+fp2.setName("Standard Deviation"); 
+fp2.setLowerLimit (1); 
+fp2.setDefault(2.0); 
+
+var fp3 = new FunctionParameter("nColorSqueeze", FunctionParameter.COLOR); 
+fp3.setName("Squeeze Color"); 
+fp3.setDefault(Color.red); 
+
+var fp4 = new FunctionParameter("nColorAction", FunctionParameter.COLOR); 
+fp4.setName("Action Color"); 
+fp4.setDefault(Color.lime); 
+} 
+function ATR(nInputLength) { 
+
+var dSum = 0; 
+
+var dH = high(0, -nInputLength); 
+
+var dL = low(0, -nInputLength); 
+
+var dC = close(-1, -nInputLength); 
+
+if (dH == null || dL == null || dC == null) { 
+
+return; 
+
+} 
+
+for (i = 0; i < nInputLength; ++i) { 
+
+var vTrueHigh = Math.max(dH[i], dC[i]); 
+
+var vTrueLow = Math.min(dL[i], dC[i]); 
+
+var vTrueRange = (vTrueHigh - vTrueLow); 
+
+dSum += vTrueRange; 
+
+} 
+
+dSum /= nInputLength; 
+
+return dSum; 
+
+} 
+
+var xSqueeze1b     = 0 ;
+var xSqueeze = 0 ;
+
+var sAlert = false;
+
+askForInput();
+
+function main( iAlert, nMA, nSD, nColorSqueeze, nColorAction) { 
+
+//Bollinger Band Variables using 1.4 Standard Deviation 
+var myStudy1 = upperBB (nMA,nSD); 
+var myStudy2 = lowerBB (nMA,nSD); 
+var momStudy1 = ema(10,mom(12));
+var momStudy2 = ema(10,mom(12));
+var macdstudy = new macdHist(12,26,9); 
+
+BBlow = myStudy2.getValue(0); 
+BBhigh = myStudy1.getValue(0); 
+Mom = momStudy1.getValue(0);
+Mom1 = momStudy1.getValue(-1);
+ 
+macdvalue = macdstudy.getValue(0); 
+
+
+
+var BarCntr; 
+
+var nRangeFactor = 1.5; 
+
+
+
+if (getBarState() == BARSTATE_NEWBAR) {
+
+BarCntr += 1; 
+ sAlert = false;
+}
+
+
+
+if (BarCntr < nMA) { 
+
+return; 
+
+} else { 
+
+var dKeltnerBasis= call("/Library/KeltnerEMA.efs", nMA); 
+var dATR = ATR(nMA); 
+KClow = (dKeltnerBasis - (nRangeFactor * dATR)); 
+KChigh = (dKeltnerBasis + (nRangeFactor * dATR)); 
+} 
+//Logic to create red or blue squeeze signal 
+if ((BBhigh <= KChigh) || (BBlow >= KClow)) { 
+xSqueeze = 0;
+drawShapeRelative(0,0,Shape.CIRCLE,null,nColorSqueeze,Shape.TOP); 
+} 
+if ((BBhigh > KChigh) || (BBlow < KClow)) { 
+xSqueeze = 1;
+drawShapeRelative(0,0,Shape.CIRCLE,null,nColorAction,Shape.TOP); 
+} 
+
+
+    if( iAlert==true && sAlert==false && xSqueeze==1 && xSqueeze1b==0 ){ 
+            drawShapeRelative(0,0,Shape.CIRCLE,null, Color.black ,Shape.TOP);        
+            Alert.addToList(getSymbol(), "Squeeze " , Color.black, Color.red);
+            Alert.playSound("ding.wav");
+            sAlert = true;
+        }
+
+
+xSqueeze1b = xSqueeze ;
+
+// added shading on Momentum histogram
+if (Mom > 0 && Mom > Mom1) { 
+setBarFgColor(Color.lime); 
+} 
+if (Mom > 0 && Mom < Mom1) { 
+setBarFgColor(Color.RGB(0,128,0)); 
+}
+if (Mom < 0 && Mom < Mom1) { 
+setBarFgColor(Color.red); 
+} 
+else if (Mom < 0 && Mom > Mom1) { 
+setBarFgColor(Color.RGB(128,0,0)); 
+} 
+
+
+
+drawTextPixel( 1, 93, "Squeeze ", Color.black, null, Text.RELATIVETOLEFT | Text.RELATIVETOBOTTOM | Text.BOLD, "Arial",10 ); 
+
+return ((Mom+macdvalue)/2); 
+
+} 

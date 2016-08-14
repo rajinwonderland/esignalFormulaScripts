@@ -1,0 +1,133 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2010. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    Volatility Percentage Index Strategy
+    
+Version:            1.00  06/07/2010
+
+Formula Parameters:                     Default:
+    
+Notes:
+    The related article is copyrighted material. If you are not a subscriber
+    of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+var fpArray = new Array();
+var bInit = false;
+var bVersion = null;
+
+function preMain() {
+    setPriceStudy(false);
+    setShowCursorLabel(true);
+    setShowTitleParameters(false);
+    setStudyTitle("VPI Strategy");
+    setCursorLabelName("VPI", 0);
+    setDefaultBarFgColor(Color.blue, 0);
+    setPlotType(PLOTTYPE_LINE, 0);
+    setDefaultBarThickness(2, 0);
+    var x=0;
+    fpArray[x] = new FunctionParameter("Length", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("Length");
+        setLowerLimit(1);
+        setDefault(64);
+    }    
+    fpArray[x] = new FunctionParameter("X", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("X");
+        setDefault(1);
+    }        
+    fpArray[x] = new FunctionParameter("LotSize", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("Lot Size");
+        setDefault(1);
+    }            
+}
+
+var xVPI = null;
+
+function main(Length, X, LotSize) {
+var nBarState = getBarState();
+var nVPI = 0;
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;   
+    if (getCurrentBarIndex() == 0) return;        
+    if (nBarState == BARSTATE_ALLBARS) {
+        if (Length == null) Length = 64;
+        if (X == null) X = 1;
+        if (LotSize == null) LotSize = 1;
+    }    
+    if (!bInit) { 
+        xVPI = efsInternal("Calc_VPI", Length);
+        addBand(0, PS_SOLID, 1, Color.lightgrey, "Zero");
+        addBand(X, PS_SOLID, 1, Color.red, "X");
+        bInit = true; 
+    }
+    nVPI = xVPI.getValue(0);
+    if (nVPI == null) return;
+    if (nVPI < X) {
+        if (Strategy.isShort()) {
+            Strategy.doCover("Exit Short", Strategy.MARKET, Strategy.NEXTBAR, Strategy.ALL);
+        }
+        Strategy.doLong("Long", Strategy.MARKET, Strategy.NEXTBAR, LotSize);
+    }
+    if (nVPI > X) {
+        if (Strategy.isLong()) {
+            Strategy.doSell("Exit Long", Strategy.MARKET, Strategy.NEXTBAR, Strategy.ALL);
+        }
+        Strategy.doShort("Short", Strategy.MARKET, Strategy.NEXTBAR, LotSize);
+    }
+  	if(Strategy.isLong()) {
+        setBarBgColor(Color.lime, 0, 0, 10);
+    } else {
+        if(Strategy.isShort()) {
+            setBarBgColor(Color.red, 0, 0, 10);
+        } else {
+            setBarBgColor(Color.white, 0, 0, 10); 
+        }        
+    }            
+    return nVPI;
+}
+
+var bSecondInit = false;
+var xClose = null;
+var xATR = null;
+
+function Calc_VPI(Length) {
+var nRes = 0;
+var nClose = 0;
+var nATR = 0;
+    if (!bSecondInit) {
+        xClose = close();
+        xATR = atr(Length);
+        bSecondInit = true;
+    }
+    nClose = xClose.getValue(0);
+    nATR = xATR.getValue(0);
+    if (nATR == null) return;
+    nRes = nATR / nClose * 100;
+    return nRes;
+}
+
+function verify() {
+    var b = false;
+    if (getBuildNumber() < 779) {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } else {
+        b = true;
+    }
+    return b;
+}

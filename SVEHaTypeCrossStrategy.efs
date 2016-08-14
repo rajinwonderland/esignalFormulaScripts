@@ -1,0 +1,224 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright В© 2014) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+
+Description:        
+    The Crossing Of Two Specific Moving Averages by Sylvain Vervoort
+
+Formula Parameters:                     Default:
+Typical Price Average                   8
+Heikin-Ashi Average                     8
+Long Position Color                     lime
+Short Position Color                    red
+
+Version:            1.00  08/06/2014
+
+Notes:
+    The related article is copyrighted material. If you are not a subscriber
+    of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+
+var fpArray = new Array(); 
+
+function preMain(){
+
+    setStudyTitle("SVEHaTypeCrossStrategy");
+    setPriceStudy(true);
+      
+    setCursorLabelName("Typical Price Average", 0);
+    setCursorLabelName("Heikin-Ashi Average", 1);
+    
+    setDefaultBarFgColor(Color.RGB(0x00,0x94,0xFF), 0);
+    setDefaultBarFgColor(Color.RGB(0xFF,0x9B,0x00), 1);
+
+    var x = 0;
+
+    fpArray[x] = new FunctionParameter("fpTypicalAverage", FunctionParameter.NUMBER);
+    with(fpArray[x++]){
+
+        setName("Typical Price Average");
+        setLowerLimit(1); 
+        setDefault(8);
+    };
+
+    fpArray[x] = new FunctionParameter("fpHaCAverage", FunctionParameter.NUMBER);
+    with(fpArray[x++]){
+
+        setName("Heikin-Ashi Average");
+        setLowerLimit(1);
+        setDefault(8);
+    };
+
+    fpArray[x] = new FunctionParameter("fpLongColor", FunctionParameter.COLOR);
+    with(fpArray[x++]){
+
+        setName("Long Position Color");    
+        setDefault(Color.lime);
+    };
+    
+    fpArray[x] = new FunctionParameter("fpShortColor", FunctionParameter.COLOR);
+    with(fpArray[x++]){
+
+        setName("Short Position Color");    
+        setDefault(Color.red);
+    };
+}
+
+var bInit = false;
+var bVersion = null;
+
+var xClose = null;
+var xOpen = null;
+var xOHLC4 = null;
+var xHLC3 = null;
+var xHaOpen = null;
+var xHaC = null;
+var xAVGTyp = null;
+var xAVGHaC = null;
+var xCross = null;
+
+function main(fpHaCAverage, fpTypicalAverage, fpLongColor, fpShortColor){
+
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;
+
+    if (!bInit){
+
+    	xClose = close();
+    	xOpen = open();
+    	xOHLC4 = ohlc4();
+        xHLC3 = hlc3();
+             
+        xHaOpen = efsInternal("Calc_HaOpen", xOHLC4);
+        xHaC = efsInternal("Calc_HaC", xOHLC4, xHaOpen);
+
+        xAVGTyp = getSeries(sma(fpTypicalAverage, xHLC3));
+        xAVGHaC = getSeries(sma(fpHaCAverage, xHaC));
+        xCross = efsInternal("Calc_Cross", xAVGTyp, xAVGHaC, xClose, xOpen)
+       
+        bInit = true; 
+    }; 
+
+    var nCross_Last = xCross.getValue(-1);
+    var nCross_Current = xCross.getValue(0);
+
+    if (nCross_Last == null || nCross_Current == null)
+        return;
+    
+    var bLong = false;
+    var bShort = false;
+    
+    if (nCross_Current > 0 && nCross_Last < 1)
+        bLong = true;
+    if (nCross_Current < 1 && nCross_Last > 0)
+        bShort = true;
+    
+    var nFillPrice = xClose.getValue(0);
+       
+    if (getCurrentBarIndex() != 0){       
+
+        if (bLong){
+
+            Strategy.doLong("Enter Long", Strategy.CLOSE, Strategy.THISBAR, Strategy.DEFAULT);
+            drawShapeRelative(0, BelowBar1, Shape.UPTRIANGLE, null, fpLongColor, Text.PRESET, getCurrentBarIndex() + "Entry");
+            drawTextRelative(0, BelowBar2, "Long", fpLongColor, null, Text.PRESET|Text.CENTER|Text.BOLD, null, null, getCurrentBarIndex() + "Entry");
+            drawTextRelative(0, BelowBar3, Strategy.getDefaultLotSize() + " @ " + formatPriceNumber(nFillPrice), fpLongColor, null, Text.PRESET|Text.CENTER|Text.BOLD, null, null, getCurrentBarIndex() + "EntrySettings");
+        };
+
+        if (bShort){
+
+            Strategy.doShort("Enter Short", Strategy.CLOSE, Strategy.THISBAR, Strategy.DEFAULT);
+            drawShapeRelative(0, AboveBar1, Shape.DOWNTRIANGLE, null, fpShortColor, Text.PRESET, getCurrentBarIndex() + "Exit");
+            drawTextRelative(0, AboveBar2, "Short", fpShortColor, null, Text.PRESET|Text.CENTER|Text.BOLD, null, null, getCurrentBarIndex() + "Exit");
+            drawTextRelative(0, AboveBar3, Strategy.getDefaultLotSize() + " @ " + formatPriceNumber(nFillPrice), fpShortColor, null, Text.PRESET|Text.CENTER|Text.BOLD, null, null, getCurrentBarIndex() + "ExitSettings"); 
+        };
+
+    };
+
+    return [xAVGTyp, xAVGHaC];
+}
+
+function Calc_HaOpen(xOHLC4){
+
+    var nOHLC4 = xOHLC4.getValue(-1);
+             
+    if (nOHLC4 == null) 
+        return null;
+    
+    var nHaOpen_Last = ref(-1);
+    
+    var nReturnValue = (nOHLC4 + nHaOpen_Last) / 2;
+
+    return nReturnValue;
+}
+
+var xHigh = null;
+var xLow = null;
+
+function Calc_HaC(xOHLC4, xHaOpen){
+
+    if (getBarState() == BARSTATE_ALLBARS)
+    {
+        xHigh = high();
+        xLow = low();
+    }
+
+    var nOHLC4 = xOHLC4.getValue(0);
+    var nHaOpen = xHaOpen.getValue(0);
+    var nHigh = xHigh.getValue(0);
+    var nLow = xLow.getValue(0);
+
+    if (nOHLC4 == null || nHaOpen == null)
+        return;
+
+    var nReturnValue = (nOHLC4 + nHaOpen + Math.max(nHigh, nHaOpen) + Math.min(nLow, nHaOpen)) / 4;   
+    
+    return nReturnValue;
+}
+
+function Calc_Cross(xAVGTyp, xAVGHaC, xClose, xOpen){
+  
+    var nClose = xClose.getValue(0);
+    var nOpen = xOpen.getValue(0);
+    var nAVGTyp = xAVGTyp.getValue(0);
+    var nAVGHaC = xAVGHaC.getValue(0);
+
+    var nCross = null;
+    var nCross_Last = ref(-1);
+   
+    if (nAVGTyp == null || nAVGHaC == null)
+        return;
+   
+    if (nAVGTyp > nAVGHaC && nClose > nOpen)    
+        nCross = 1
+    else if (nAVGTyp < nAVGHaC && nClose < nOpen)
+        nCross = 0;
+    else 
+        nCross = nCross_Last; 
+        
+    return nCross;
+}
+
+function verify(){
+    
+    var b = false;
+    if (getBuildNumber() < 779){
+        
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } 
+    else
+        b = true;
+    
+    return b;
+}

@@ -1,0 +1,91 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2008. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+   
+
+Description:        
+    Elder Ray (Bull Power)  
+
+Version:            1.0  12/03/2008
+
+Formula Parameters:                     Default:
+    Length                                  13
+    Price                                 Close
+
+Notes:
+    Developed by Dr Alexander Elder, the Elder-ray indicator measures buying 
+    and selling pressure in the market. The Elder-ray is often used as part 
+    of the Triple Screen trading system but may also be used on its own.
+    Dr Elder uses a 13-day exponential moving average (EMA) to indicate the 
+    market consensus of value. Bull Power measures the ability of buyers to 
+    drive prices above the consensus of value. Bear Power reflects the ability 
+    of sellers to drive prices below the average consensus of value.
+    Bull Power is calculated by subtracting the 13-day EMA from the day's High. 
+    Bear power subtracts the 13-day EMA from the day's Low.
+
+**********************************/
+
+var fpArray = new Array();
+var bInit = false;
+
+function preMain() {
+    setPriceStudy(false);
+    setStudyTitle("ER Bull Power");
+    setCursorLabelName("ER Bull Power");
+    setPlotType(PLOTTYPE_HISTOGRAM);
+    addBand(0, PS_SOLID, 1, Color.black);
+    
+    var x=0;
+    fpArray[x] = new FunctionParameter("Length", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setLowerLimit(1);		
+        setDefault(13);
+    }
+
+    fpArray[x] = new FunctionParameter("Price", FunctionParameter.STRING);
+    with(fpArray[x++]){
+        addOption("open"); 
+        addOption("high");
+        addOption("low");
+        addOption("close");
+        addOption("hl2");
+        addOption("hlc3");
+        addOption("ohlc4"); 
+        setDefault("close"); 
+    }
+   }
+
+var DayHigh = null;
+var DayHigh_1 = null;
+var xPrice = null;
+var xMA = null;
+
+
+function main(Price, Length) {
+var nState = getBarState();
+
+    if (nState == BARSTATE_ALLBARS) {
+        if (Price == null) Price = "close";
+        if (Length == null) Length = 13;
+    }
+
+    if ( bInit == false ) { 
+        xPrice = eval(Price)();
+        xMA = ema(Length, xPrice);
+        bInit = true; 
+    } 
+
+    if(getBarState() == BARSTATE_NEWBAR)  DayHigh_1 =  DayHigh;
+
+    if (day(0) != day(-1)) {
+        DayHigh = high(0);
+    }else{
+        DayHigh = Math.min(high(0), DayHigh_1)
+    }
+
+    return DayHigh - xMA.getValue(0);}

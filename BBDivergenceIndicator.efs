@@ -1,0 +1,132 @@
+/*********************************
+Provided By:  
+    Novvum Consulting Group LLC. All rights reserved.
+    
+Description:        
+    Trading The Loonie by Markos Katsanos
+
+Formula Parameters:                     Default:
+Length BB Divergence                    20
+Secondary Symbol                        CL #F 
+
+Version:            1.00  11/19/2015
+
+Notes:
+    This eSignal Formula Script is an adoption of Markos Katsanos publications and works interpreted by Raj K Singh
+**********************************/
+
+var fpArray = new Array(); 
+
+function preMain(){
+
+    setStudyTitle("BBDivergenceStrategy");
+    setIntervalsBackfill(true);
+    
+    var x = 0;
+
+    fpArray[x] = new FunctionParameter("fpLength", FunctionParameter.NUMBER);
+    with(fpArray[x++]){
+        setName("Length BB Divergence");
+        setLowerLimit(1); 
+        setDefault(20);
+    }
+
+    fpArray[x] = new FunctionParameter("fpSecondarySymbol", FunctionParameter.STRING);
+    with(fpArray[x++]){
+        setName("Secondary Symbol");    
+        setDefault('CL #F');
+    }
+}
+ 
+var bInit = false;
+var bVersion = null;
+
+var xClose = null;
+var xSecClose = null;
+
+var xBol = null;
+var xSecBol = null;
+
+var xDiverg = null;
+
+function main(fpLength, fpSecondarySymbol){
+
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;
+
+    if (!bInit){
+        
+        xClose = close();
+        xSecClose = close(sym(fpSecondarySymbol));
+        
+        xBol = efsInternal('Calc_Bol', fpLength, xClose);
+        xSecBol = efsInternal('Calc_Bol', fpLength, xSecClose);
+        
+        xDiverg = efsInternal('Calc_Div', xBol, xSecBol);
+        
+        bInit = true; 
+    }
+
+    var nDiverg = xDiverg.getValue(0);
+
+    if (nDiverg == null)
+        return;
+        
+    return nDiverg;
+}
+
+var xBolSMA = null;
+var xSTDDev = null;
+var bInitInt = false;
+
+function Calc_Bol(nLength, xSource){
+    
+    if (!bInitInt){
+        xBolSMA = sma(nLength, xSource);
+        xSTDDev = stdDev(nLength, xSource);
+        
+        bInitInt = true;
+    }
+    
+    var nSource = xSource.getValue(0);
+    var nBolSMA = xBolSMA.getValue(0);
+    var nSTDDev = xSTDDev.getValue(0);
+    
+    if (nSource == null || nBolSMA == null || nSTDDev == null)
+        return;
+    
+    var nBol = 1 + ((nSource - nBolSMA + 2 * nSTDDev) / (4 * nSTDDev + .0001));
+    
+    return nBol;
+}
+
+function Calc_Div(xBol1, xBol2){
+      
+    var nBol1 = xBol1.getValue(0);
+    var nBol2 = xBol2.getValue(0);
+
+    if (nBol1 == null || nBol2 == null)
+        return;
+    
+    nDiverg = (nBol2 - nBol1) / nBol1 * 100 ;
+    
+    return nDiverg;
+}
+
+function verify(){
+    var b = false;
+    if (getBuildNumber() < 3742){
+        
+        drawTextAbsolute(5, 35, "This study requires version 12.1 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } 
+    else
+        b = true;
+    
+    return b;
+}

@@ -1,0 +1,112 @@
+/***************************************
+Provided By : eSignal (c) Copyright 2006
+Description:  Trading With An Adaptive Price Zone
+              by Lee Leibfarth
+
+Version 1.0  07/06/2006
+
+Notes:
+* Sept 2006 Issue of Stocks and Commodities Magazine
+* Study requires version 8.0 or higher.
+
+
+Formula Parameters:                 Defaults:
+Period                              20
+Band Percent                        2
+***************************************/
+
+
+function preMain() {
+    setPriceStudy(true);
+    setStudyTitle("Adaptive Price Zone Indicator ");
+    setCursorLabelName("Upper Band", 0);
+    setCursorLabelName("Lower Band", 1);
+    setDefaultBarThickness(2, 0);
+    setDefaultBarThickness(2, 1);
+    setDefaultBarStyle(PS_DOT, 0);
+    setDefaultBarStyle(PS_DOT, 1);
+    
+
+    var fp1 = new FunctionParameter("nPeriods", FunctionParameter.NUMBER);
+        fp1.setName("Period");
+        fp1.setLowerLimit(1);
+        fp1.setDefault(20);
+    var fp2 = new FunctionParameter("nBandPct", FunctionParameter.NUMBER);
+        fp2.setName("Band Percent");
+        fp2.setLowerLimit(0);
+        fp2.setDefault(2);
+}
+
+var bVersion = null;
+var bInit = false;
+
+var xAPZ = null;
+var xAPZ_Upper = null;  // Upper Band
+var xAPZ_Lower = null;  // Lower Band
+
+function main(nPeriods, nBandPct) {    
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;    
+
+    if (bInit == false) {
+        xAPZ = efsInternal("calcAPZ", nPeriods, nBandPct);
+        bInit = true;
+    }
+    
+    if (xAPZ_Upper == null) xAPZ_Upper = getSeries(xAPZ, 0);  // Upper Band
+    if (xAPZ_Lower == null) var xAPZ_Lower = getSeries(xAPZ, 1);  // Lower Band
+    var nAPZ_Upper = xAPZ_Upper.getValue(0);
+    var nAPZ_Lower = xAPZ_Lower.getValue(0);
+    if (nAPZ_Upper == null || nAPZ_Lower == null) return;
+
+    if (high(0) > nAPZ_Upper) {
+        drawShape(Shape.CIRCLE, AboveBar1, Color.blue, rawtime(0));
+    } else if (low(0) < nAPZ_Lower) {
+        drawShape(Shape.CIRCLE, BelowBar1, Color.blue, rawtime(0));
+    }
+    
+
+    return new Array(nAPZ_Upper, nAPZ_Lower);
+}
+
+var xHL = null;
+
+function calcAPZ(nPeriods, nBandPct) {
+    if (xHL == null) xHL = efsInternal("calcHL");
+    if (isNaN(xHL.getValue(0))) return;
+    
+    //nPeriods = Math.round(Math.sqrt(nPeriods));
+    nPeriods = Math.ceil(Math.sqrt(nPeriods));
+    var Value1 = ema(nPeriods, ema(nPeriods), 0);
+    var Value2 = ema(nPeriods, ema(nPeriods, xHL), 0);
+    if (Value1 == null || Value2 == null) return;
+    
+    var UpBand = nBandPct * Value2 + Value1;
+    var DnBand = Value1 - nBandPct * Value2;
+    if (UpBand == null || DnBand == null) return;
+    
+    return new Array(UpBand, DnBand);
+}
+
+
+function calcHL() {
+    return high(0) - low(0);
+}
+
+
+function verify() {
+    var b = false;
+    if (getBuildNumber() < 779) {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } else {
+        b = true;
+    }
+    
+    return b;
+}

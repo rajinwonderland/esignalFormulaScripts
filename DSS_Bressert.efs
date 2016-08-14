@@ -1,0 +1,88 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2009. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    DSS Bressert (Double Smoothed Stochastic)
+    
+Version:            1.0  04/10/2009
+
+Formula Parameters:                     Default:
+    pds                                 10
+    TriggerLen                          5
+    Overbought                          80
+    Oversold                            20
+    EMAlen                              9
+
+Notes:
+    Double Smoothed Stochastics (DSS) is designed by William Blaw. 
+    It attempts to combine moving average methods with oscillator principles. 
+**********************************/
+var fpArray = new Array();
+var bInit = false;
+
+function preMain() {
+    setStudyTitle("DSS Bressert");
+    setCursorLabelName("DSS", 0);
+    setCursorLabelName("Trigger", 1);
+    setDefaultBarFgColor(Color.brown, 0);
+    setDefaultBarFgColor(Color.red, 1);
+    setStudyMax(101);
+    setStudyMin(-1);
+    var x = 0;
+    fpArray[x] = new FunctionParameter("pds", FunctionParameter.NUMBER);
+    with(fpArray[x++]) {
+        setLowerLimit(1);
+        setDefault(10);
+    }
+    fpArray[x] = new FunctionParameter("TriggerLen", FunctionParameter.NUMBER);
+    with(fpArray[x++]) {
+        setLowerLimit(1);
+        setDefault(5);
+    }
+    fpArray[x] = new FunctionParameter("Overbought", FunctionParameter.NUMBER);
+    with(fpArray[x++]) {
+        setLowerLimit(1);
+        setDefault(80);
+    }
+    fpArray[x] = new FunctionParameter("Oversold", FunctionParameter.NUMBER);
+    with(fpArray[x++]) {
+        setLowerLimit(1);
+        setDefault(20);
+    }
+    fpArray[x] = new FunctionParameter("EMAlen", FunctionParameter.NUMBER);
+    with(fpArray[x++]) {
+        setLowerLimit(1);
+        setDefault(9);
+    }   
+}
+
+var xDSS = null;
+var xTrigger = null;
+
+function main(pds, TriggerLen, EMAlen, Overbought, Oversold){
+var nBarState = getBarState();
+    if (nBarState == BARSTATE_ALLBARS) {
+        if (pds == null) pds = 10;
+        if (TriggerLen == null) TriggerLen = 5;
+        if (Overbought == null) Overbought = 80;
+        if (Oversold == null)	Oversold = 20;
+        if (EMAlen == null) EMAlen = 9;
+    }
+    if (bInit == false) {
+        addBand(Overbought, PS_SOLID, 1, Color.blue, 0);
+        addBand(Oversold, PS_SOLID, 1, Color.blue, 1);            
+        xDSS = ema(EMAlen,stochK(pds,1,1,ema(EMAlen,stochK(pds,1,1))));
+        xTrigger = ema(TriggerLen,xDSS);
+        bInit = true;
+    }
+    var nDSS = xDSS.getValue(0);
+    var nTrigger = xTrigger.getValue(0);
+    if(nDSS==null||nTrigger==null) return;
+	return new Array(nDSS,nTrigger);
+}

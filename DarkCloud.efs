@@ -1,0 +1,90 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2009. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+   
+
+Description:        
+    Dark Cloud
+
+Version:            1.0  12/24/2009
+
+Formula Parameters:                     Default:
+    Font                                Arial Narrow
+    Font Size                           11
+    Font and Shape Color                Green
+    Font BgColor                        White
+    
+Notes:
+    This is a bearish reversal pattern formed by two candlesticks  within a uptrend. 
+    Consists of an up candlestick followed by a down candlestick which opens lower 
+    than the prior candlestick and closes below the midrange of the prior candlestick. 
+    It is the reverse of the Piercing Line.
+**********************************/
+
+var fpArray = new Array();
+
+function preMain() {
+    setPriceStudy(true);
+    setStudyTitle("Dark Cloud");
+    setShowCursorLabel(false);
+    setShowTitleParameters(false);
+    var x=0;
+    fpArray[x] = new FunctionParameter("nFontSize", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("Font Size")
+        setLowerLimit(6);		
+        setDefault(11);
+    }
+    fpArray[x] = new FunctionParameter("cFontColor", FunctionParameter.COLOR);
+    with(fpArray[x++]){
+        setName("Font and Shape Color");
+        setDefault(Color.green);
+    }    
+    fpArray[x] = new FunctionParameter("cFontBgColor", FunctionParameter.COLOR);
+    with(fpArray[x++]){
+        setName("Font BgColor");
+        setDefault(Color.white);
+    }    
+    fpArray[x] = new FunctionParameter("sFont", FunctionParameter.STRING);
+    with(fpArray[x++]){
+        setName("Font");
+        setDefault("Arial Narrow");
+    }    
+}
+
+function main(sFont, nFontSize, cFontColor, cFontBgColor) {
+    Find_DarkCloud(sFont, nFontSize, cFontColor, cFontBgColor);
+    return;
+}
+
+function Find_DarkCloud(sFont, nFontSize, cFontColor, cFontBgColor) {
+var nState = getBarState();
+var Open = open(0);
+var Close = close(0);
+var Open1 = open(-1);
+var Close1 = close(-1);
+var High1 = high(-1);
+var nID = getCurrentBarCount();
+    if (nState == BARSTATE_ALLBARS) {
+        if (sFont == null) sFont = "Arial Narrow";
+        if (nFontSize == null) nFontSize = 11;
+        if (cFontColor == null) cFontColor = Color.green;
+        if (cFontBgColor == null) cFontBgColor = Color.white;
+    }
+    if (Close1 > Open1 && 
+        Open > High1 &&
+        Close < Close1 - ((Close1 - Open1) / 2) &&
+        Close > Open1) {
+        drawTextRelative(0, AboveBar2, "DC", cFontColor, cFontBgColor, Text.PRESET | Text.CENTER, sFont, nFontSize, "T"+nID); 
+        drawShapeRelative(0, AboveBar1, Shape.DOWNARROW, null, cFontColor, Shape.PRESET, "S"+nID);         
+    } else {
+        removeText("T"+nID);
+        removeShape("S"+nID);
+    }
+    return;
+}

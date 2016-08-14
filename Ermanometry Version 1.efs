@@ -1,0 +1,254 @@
+/*********************************
+Provided By:  
+	Novvum Consulting Group LLC. This is a sample eSignal Formula Script (EFS) that will be simulating an Ermanometric Indicator Study. The parameters, methods, and algorithms set within this .efs file are all based of the research and publications of William Erman.
+
+Description:        
+    Intraday Trading Application (Ermanometry Indicator Study)
+	
+Version:            1.00  11/15/2015
+**********************************
+
+FORMULA PARAMETERS:                     Default:
+
+Select Start Date                       First Bar On Chart
+Start Date (mm/dd/yyyy)  xxxxxxx
+Start Time                              00:00
+First Wave Period                   	10 
+Second Wave Period                 	10 
+Show Erman Segments                     true
+Erman Segments Color                    Color.yellow
+Show Coles Segments                     true
+Colse Segments Color                    Color.yellow
+
+Comments:
+   
+    The related article of the Ermanometry Indicator Study was interpreted by Raj K Singh. All rights reserved 2015. 
+
+**********************************/
+
+setStudyTitle("");
+
+
+var bVersion = null;
+var fpArray = new Array();
+function preMain()
+{
+    setPriceStudy(true);
+    setPlotType(PLOTTYPE_FLATLINES);
+
+    var x = 0;
+    fpArray[x] = new FunctionParameter("gFirstBar", FunctionParameter.STRING);
+    with(fpArray[x++]){
+        setName("Select Start Date");
+        addOption("First Bar On Chart");
+        addOption("User Defined");
+        setDefault("First Bar On Chart"); 
+    }
+
+    fpArray[x] = new FunctionParameter("gStartDate", FunctionParameter.STRING);
+    with (fpArray[x++])
+    {
+        setName("Start Date (mm/dd/yyyy)" );
+        setDefault("");
+    } 
+
+    fpArray[x] = new FunctionParameter("gStartTime", FunctionParameter.STRING);
+    with (fpArray[x++])
+    {
+        setName("Start Time (hh:mm)" );
+        setDefault("00:00");
+    } 
+
+    fpArray[x] = new FunctionParameter("gWave1", FunctionParameter.INTEGER);
+    with (fpArray[x++])
+    {
+        setName("The First Wave Period" );
+        setLowerLimit(1);
+        setDefault(10);
+    } 
+
+    fpArray[x] = new FunctionParameter("gWave2", FunctionParameter.INTEGER);
+    with (fpArray[x++])
+    {
+        setName("The Second Wave Period" );
+        setLowerLimit(1);
+        setDefault(10);
+    } 
+
+    fpArray[x] = new FunctionParameter("gErman", FunctionParameter.BOOLEAN);
+    with (fpArray[x++])
+    {
+        setName("Show Erman Segments");
+        setDefault(true);
+    }
+
+    fpArray[x] = new FunctionParameter("gErmanColor", FunctionParameter.COLOR);
+    with (fpArray[x++])
+    {
+        setName("Erman Segments Color");
+        setDefault(Color. yellow);
+    }
+    
+    fpArray[x] = new FunctionParameter("gColes", FunctionParameter.BOOLEAN);
+    with (fpArray[x++])
+    {
+        setName("Show Coles Segments");
+        setDefault(true);
+    }
+
+    fpArray[x] = new FunctionParameter("gColesColor", FunctionParameter.COLOR);
+    with (fpArray[x++])
+    {
+        setName("Coles Segments Color");
+        setDefault(Color. yellow);
+    }
+}
+
+var bInit = false; 
+var nRatio = 0;
+var arrLogSpiral = new Array();
+var arrErmanVal = null;
+var arrColesVal = null;
+var arrColesSign = new Array();
+var cFixColor = null;
+var startPos = 0;
+var i = 0;
+var offsetBar = null;
+function main(gFirstBar, gStartDate, gStartTime, gWave1, gWave2, gErman, gErmanColor, gColes, gColesColor)
+{
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;     
+
+    var retVal = null;
+
+    if (getCurrentBarIndex() == 0 && getBarState() == BARSTATE_CURRENTBAR && cFixColor!=null) setBarBgColor(cFixColor);
+    
+  
+    if (!bInit)
+    {
+        nRatio = gWave2 / gWave1;
+        
+        for (i = 0; i<=8; i++) arrLogSpiral[i] = Math.round( gWave1*Math.pow(nRatio, i-3) );
+        arrLogSpiral[9] = Math.round( Math.sqrt(Math.pow(arrLogSpiral[7],2)+Math.pow(arrLogSpiral[8],2)) );
+        arrLogSpiral[10] = Math.round( Math.sqrt(Math.pow(arrLogSpiral[2],2)+Math.pow(arrLogSpiral[3],2)) );
+        arrLogSpiral[11] = Math.round( Math.sqrt(Math.pow(arrLogSpiral[4],2)+Math.pow(arrLogSpiral[5],2)) );
+        
+        arrErmanVal = new Array(
+                                    arrLogSpiral[9], //FH
+                                    arrLogSpiral[6], //GH
+                                    arrLogSpiral[7], //HI
+                                    arrLogSpiral[8], //IJ
+                                    arrLogSpiral[3]+arrLogSpiral[4]+arrLogSpiral[2], //DE+EF+CD
+                                    arrLogSpiral[6]+arrLogSpiral[7]+arrLogSpiral[8], //GH+HI+IJ
+                                    arrLogSpiral[2]+arrLogSpiral[3]+arrLogSpiral[4]+arrLogSpiral[5]+arrLogSpiral[6]+arrLogSpiral[7], //CD+DE+EF+FG+GH+HI
+                                    arrLogSpiral[4]+arrLogSpiral[5]+arrLogSpiral[6], //EF+FG+GH
+                                    arrLogSpiral[2]+arrLogSpiral[3]+arrLogSpiral[4]+arrLogSpiral[5]+arrLogSpiral[6], //CD+DE+EF+FG+GH
+                                    arrLogSpiral[6]+arrLogSpiral[8]+arrLogSpiral[2]+arrLogSpiral[0]+arrLogSpiral[4] //GH+IJ+CD+AB+EF
+        );
+        arrColesVal = new Array(
+                                    arrLogSpiral[9]+arrLogSpiral[5]+arrLogSpiral[6], //FH+FG+GH
+                                    arrLogSpiral[0]+arrLogSpiral[1]+arrLogSpiral[2]+arrLogSpiral[3], //AB+BC+CD+DE
+                                    arrLogSpiral[0]+arrLogSpiral[1]+arrLogSpiral[2]+arrLogSpiral[3]+arrLogSpiral[6], //AB+BC+CD+DE+GH
+                                    arrLogSpiral[5]+arrLogSpiral[6], //FG+GH
+                                    arrLogSpiral[6]+arrLogSpiral[7], //GH+HI
+                                    arrLogSpiral[5]+arrLogSpiral[1]+arrLogSpiral[2], //FG+BC+CD
+                                    arrLogSpiral[5]+arrLogSpiral[1]+arrLogSpiral[2]+arrLogSpiral[3], //FG+BC+CD+DE
+                                    arrLogSpiral[2]+arrLogSpiral[1], //CD+BC
+                                    arrLogSpiral[3]+arrLogSpiral[1], //DE+BC
+                                    arrLogSpiral[10]+arrLogSpiral[2]+arrLogSpiral[3], //CE+CD+DE
+                                    arrLogSpiral[11]+arrLogSpiral[4]+arrLogSpiral[5] //EG+EF+FG
+        );
+        
+
+        bInit = true;
+    }
+
+    if ( getBarState() == BARSTATE_ALLBARS )
+    {
+        offsetBar = null;
+        if ( gFirstBar !=  "User Defined" )  offsetBar = 0;
+        else
+        {
+            var xDate = gStartDate.split("/");
+            var xTime = (!isDWM()) ? gStartTime.split(":") : new Array("0","0");
+            var startDate = new Date(xDate[2], xDate[0], xDate[1], xTime[0], xTime[1]);
+            startPos = startDate.getTime();
+        }        
+        
+        if (offsetBar == 0)
+        {
+                setBarBgColor(Color.grey);
+                drawTextRelative(0, BottomRow2, "Start" , Color.grey, null, Text.FRAME | Text.PRESET | Text.CENTER , "Arial", 11, "Start" );
+                retVal = "START";
+        }
+    }
+
+    if ( getBarState() == BARSTATE_NEWBAR )
+    {
+        if ( isNull(offsetBar) )
+        {    
+            var currentDate = new Date(year(0), month(0), day(0), hour(0), minute(0));
+            var currentPos = currentDate.getTime();
+            if ( currentPos == startPos ) 
+            {
+                offsetBar = Math.abs(getOldestBarIndex() - getCurrentBarIndex()); 
+                setBarBgColor(Color.grey);
+                drawTextRelative(0, BottomRow2, "Start" , Color.grey, null, Text.FRAME | Text.PRESET | Text.CENTER , "Arial", 11, "Start" );
+                retVal = "START";
+            }
+            if  ( currentPos > startPos  )
+            {
+                drawTextRelative(1, 20, " Date not availible ", Color.grey, null, Text.RELATIVETOLEFT|Text.RELATIVETOBOTTOM|Text.BOLD|Text.LEFT|Text.FRAME, null, 12, "dna");
+                retVal = "Date Not Availible";
+            }
+        } 
+
+        else
+        {
+
+            var segE = 0;
+            var segC = 0;
+            for (i=0; i<=9; i++) if ( -getOldestBarIndex()-offsetBar-arrErmanVal[i]  == -getCurrentBarIndex() && gErman ) segE = arrErmanVal[i];
+            for (i=0; i<=10; i++) if ( -getOldestBarIndex()-offsetBar-arrColesVal[i]  == -getCurrentBarIndex() && gColes ) segC = arrColesVal[i];
+                
+            if ( segE !=0 )
+            {
+                cFixColor = gErmanColor;
+                setBarBgColor(gErmanColor);
+                drawTextRelative(0, BottomRow2, segE+ " bars" , gErmanColor, null, Text.FRAME | Text.PRESET | Text.CENTER , "Arial", 11, segE );
+                retVal = ""+segE;
+            }
+            else if (segC !=0 )
+            {
+                cFixColor = gColesColor;
+                setBarBgColor(gColesColor);
+                drawTextRelative(0, BottomRow2, segC+ " bars" , gColesColor, null, Text.FRAME | Text.PRESET | Text.CENTER , "Arial", 11, segC );
+                retVal = ""+segC;
+            }
+            else 
+            {    
+                cFixColor = null;
+                var fromStart = -getOldestBarIndex()-offsetBar + getCurrentBarIndex(); 
+                retVal = ""+fromStart;
+            }    
+        }        
+    }        
+    
+    return retVal;
+}
+
+function verify() {
+    var b = false;
+    if (getBuildNumber() < 779) {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "You have an older version of eSignal and will need to upgrade. Upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade now! thanks RAJ");
+        return b;
+    } else {
+        b = true;
+    }
+    return b;
+}

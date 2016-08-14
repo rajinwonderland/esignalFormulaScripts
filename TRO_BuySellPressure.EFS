@@ -1,0 +1,391 @@
+/****
+
+TRO_BuySellPressure 12:36 PM 9/9/2006 Buy Sell Pressure INDICATOR
+ 
+Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne,  
+
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+please include this and/or any other comment blocks and a 
+description of any changes you make.
+
+Copyright 2006, All Rights Reserved. Code may be modified for 
+personal use only. No portion of this code can be sold or
+otherwise redistributed without the express written consent of
+the author, Avery T. Horton, Jr.
+
+
+ATTN ESIGNAL: I DID NOT POST THIS CODE ON YOUR FORUM
+              I AM NOT RESPONSIBLE FOR ANY ESIGNAL FORUM RULE VIOLATIONS.
+
+****/
+
+
+var nFontCY = 0;
+var nFontCX = 0;
+var nColWidth	= 0;
+var nRowThickness = 1;
+var nFontSize   = 10;
+var sStr;
+var tStr;
+
+var diff1 =0;
+var diff2 =0;
+
+
+var xVal1 =0;
+var xVAl2 =0;
+
+var midpoint1 =0;
+var realtimepivot =0;
+
+var tTradeIntOPEN_GAP  = "" ;
+var tTradeIntOPEN_GAP1 = "" ;
+var xTradeOPEN_GAPInt = 0;
+
+
+var xOPEN_GAPMaj   = 0;
+var xOPEN_GAPMin   = 0;
+var xTradeOPEN_GAP  = 0;
+
+var xTrendMaj   = 0;
+var xTrendMin   = 0;
+var xTrendTrade = 0;
+
+var sDiff = false;
+
+var tMajOPEN_GAP  = "" ;
+var tMajOPEN_GAP1 = "" ;
+
+var tMinOPEN_GAP  = "" ;
+var tMinOPEN_GAP1 = "" ;
+
+var tTradeOPEN_GAP  = "" ;
+var tTradeOPEN_GAP1 = "" ;
+
+
+var xInit   = false;
+var xMiddle = null;
+var xGap    = null;
+var xHiOp   = null;
+var xOpLo   = null;
+
+var xOpen   = null;
+var xHigh   = null;
+var xLow    = null;
+var xClose  = null;
+
+var Symbol   = null;
+var Interval = null;
+var Source   = null;
+
+
+function preMain() {
+
+    setStudyTitle("TRO_BuySellPressure");
+    setPriceStudy(false);
+    setShowCursorLabel(true);
+    setShowTitleParameters(true);
+
+    setCursorLabelName("Pressure", 0);
+
+    setDefaultBarFgColor(Color.black, 0);
+ 
+    setDefaultBarThickness(2, 0);
+ 
+ 
+
+    
+    var iDebug = new FunctionParameter("iDebug", FunctionParameter.BOOLEAN);
+	iDebug.setDefault( false );
+
+    var iAlert = new FunctionParameter("iAlert", FunctionParameter.BOOLEAN);
+	iAlert.setDefault( false );
+
+
+    var iButtonX = new FunctionParameter("iButtonX", FunctionParameter.NUMBER);
+	iButtonX.setDefault( 1 ); 
+
+    var iButtonY = new FunctionParameter("iButtonY", FunctionParameter.NUMBER);
+	iButtonY.setDefault( 1 ); 
+
+
+    var iFontSize = new FunctionParameter("iFontSize", FunctionParameter.NUMBER);
+	iFontSize.setDefault( 10 ); 
+ 
+
+    var iDecimals = new FunctionParameter("iDecimals", FunctionParameter.NUMBER);
+	iDecimals.setDefault( 2 ); 
+        iDecimals.setName("Round to X decimals");
+
+    var iThreshold = new FunctionParameter("iThreshold", FunctionParameter.NUMBER);
+ 	iThreshold.setDefault( .25 );
+
+
+    var iLineType = new FunctionParameter("iLineType", FunctionParameter.STRING);
+           iLineType.addOption("PLOTTYPE_HISTOGRAM");
+           iLineType.addOption("PLOTTYPE_SQUAREWAVE");
+           iLineType.addOption("PLOTTYPE_LINE");
+           iLineType.addOption("PLOTTYPE_SQUARE");
+           iLineType.addOption("PLOTTYPE_CIRCLE");
+           iLineType.addOption("PLOTTYPE_INSTANTCOLORLINE");
+           iLineType.addOption("PLOTTYPE_FLATLINES");
+           iLineType.setDefault( "PLOTTYPE_LINE" );
+
+    var iPeriods = new FunctionParameter("iPeriods", FunctionParameter.NUMBER);
+	iPeriods.setDefault( 05 );
+
+    /***** Column Width is used here for the cx parameter *****/
+	var fp = new FunctionParameter("inputColWidth", FunctionParameter.NUMBER);
+	fp.setName("Column Width");
+	fp.setDefault(80);
+
+    /***** Row Thickness is used here for the cy parameter *****/
+	var fp = new FunctionParameter("inputRowThickness", FunctionParameter.NUMBER);
+	fp.setName("Row Thickness");
+	fp.setDefault(-1.2);
+
+	var fp = new FunctionParameter("inputFontSize", FunctionParameter.NUMBER);
+	fp.setName("Font Size");
+	fp.setLowerLimit(1);
+	fp.setDefault(11);
+
+    /*****
+        With drawTextPixel, X Start = the number of pixels from the left of 
+            the window.
+        With drawTextRelative or Absolute, X Start will be the bar index unless
+            the RELATIVETO### text flags are used.  In which case the values
+            will represent pixels.
+    *****/
+	var fp = new FunctionParameter("inputXstart", FunctionParameter.NUMBER);
+	fp.setName("X Start");
+	fp.setLowerLimit(1);
+	fp.setDefault(5);
+
+    /*****
+        With drawTextPixel, Y Start = the number of pixels from the top of 
+            the window.
+        With drawTextRelative or Absolute, Y Start will be relative to the 
+            price scale of the chart symbol unless the RELATIVETO### text 
+            flags are used.  In which case the values will represent pixels.
+    *****/
+	var fp = new FunctionParameter("inputYstart", FunctionParameter.NUMBER);
+	fp.setName("Y Start");
+	fp.setLowerLimit(1);
+	fp.setDefault(20);	
+	
+        
+    var fp4 = new FunctionParameter("roundlen", FunctionParameter.NUMBER);
+        fp4.setName("roundlen");
+        fp4.setLowerLimit(0);
+        fp4.setDefault(2);
+}
+
+var bEdit = true;
+
+
+function main(  iDebug , iAlert,   iDecimals, iPeriods, iThreshold , iLineType,
+    
+            inputColWidth, inputRowThickness, inputFontSize, 
+            inputXstart, inputYstart,
+             
+	     iFontSize, iButtonX, iButtonY) {
+            
+           
+   
+  // initialize upon first loading formula
+    if(getBarState() == BARSTATE_ALLBARS) {
+        drawTextPixel( iButtonX , iButtonY, " TRO_BuySellPressure @URL=EFS:editParameters", Color.white, 	Color.lime, 
+            Text.RELATIVETOLEFT|Text.RELATIVETOBOTTOM|Text.ONTOP|Text.BOLD|Text.BUTTON, 
+            "Comic Sans MS", 13, "UpExp"); 
+        vDate = new Date();
+        iInterval = getInterval();
+
+        vSymbol = getSymbol().toUpperCase();
+    
+        xSymbol = getSymbol().toUpperCase();
+
+        setPlotType( eval(iLineType) , 0);
+ 
+
+        return null;
+    }
+         
+    
+    
+    
+    //  prevents the formula from executing except at bar 0 and on new bar.
+	if(getCurrentBarIndex() != 0 && getBarState() != BARSTATE_NEWBAR) return;
+
+    // initialization routine to set values for global variables
+    if (bEdit == true) {
+        nColWidth = Math.round(inputColWidth);
+        nRowThickness = Math.round(inputRowThickness);
+        nFontSize = Math.round(inputFontSize);
+        
+        /***** Used for setting the space between x/y anchors for text
+            labels based on the font height *****/
+        if (nRowThickness < 0) {
+            nFontCY = getTextHeight("A", null, nFontSize)*(nRowThickness);
+        } else {
+            nFontCY = -nRowThickness;
+        }
+        
+        /***** This will get the maximum width for the specified string
+            based on the specified font type.  If the font type is not 
+            specified it uses a default Arial. *****/
+        if (nColWidth < 0) {
+            nFontCX = getTextWidth("Row ## Col ##", null, nFontSize);
+        } else {
+            nFontCX = nColWidth;
+        }
+        bEdit = false;
+    }
+
+    var nX = inputXstart;
+    var nY = inputYstart; 
+
+    
+    
+    //DISPLAY  COLUMN HEADINGS
+    
+        tStr= "Symbol"   ;
+    drawTextPixel(nX, nY, tStr, Color.blue, Color.lightgrey,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row0Col0", nColWidth, nRowThickness);
+
+        tStr= "Pressure"   ;
+    drawTextPixel(nX+=nFontCX, nY, tStr, Color.blue, Color.lightgrey,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row0Col1", nColWidth, nRowThickness);  
+   
+    //Zeile2
+    
+    nX = inputXstart;
+    nY -= nFontCY;
+
+ 
+     if(xInit==false){
+
+        if(Symbol == null)   Symbol = getSymbol();
+        if(Interval == null) Interval = getInterval();
+        var vSymbol = Symbol+","+Interval;
+
+   xDiff1 =  efsInternal( "fDiff", close(), low() ); 
+
+   xDiff2 =  efsInternal( "fDiff", high(), close() ); 
+   
+
+         xInit=true;
+
+     } // xInit 
+      
+ 
+xVal1 = ema( iPeriods, xDiff1 , sym(vSymbol)) ;
+
+xVal2 = ema( iPeriods, xDiff2 , sym(vSymbol)) ;
+
+xVal3 = rnd( xVal1 - xVal2, iDecimals )  ;
+ 
+
+           sStr     = xSymbol ;
+        drawTextPixel(nX, nY, sStr, Color.white, Color.black,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row1Col0", nColWidth, nRowThickness);
+       
+
+// PROCESS ROW 1 COLUMN 1  
+          
+           xFG1Color = Color.white; 
+	   xBG1Color = Color.black; 
+          
+
+//        if( xVal3  >= iThreshold && high(0) < high(-1) ) {
+
+        if( xVal3  >= iThreshold  ) {
+           xFG1Color = Color.black;
+	   xBG1Color = Color.green;
+                  }  
+        else 
+//        if( xVal3  <=  ( 0 - iThreshold && low(0) > low(-1) )  ) {
+        if( xVal3  <=  ( 0 - iThreshold )  ) {
+           xFG1Color = Color.black;   
+	   xBG1Color = Color.red; 
+             }
+	    else {    
+               xFG1Color = Color.white;  
+	       xBG1Color = Color.black;
+          }
+
+
+
+           sStr     =   "" + xVal3;
+        drawTextPixel(nX+=nFontCX, nY, sStr, xFG1Color, xBG1Color,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row1Col1", nColWidth, nRowThickness);
+
+ 
+
+
+ 
+// DEBUG 
+
+if(iDebug == true ) {
+
+ 
+  xSymbol = getSymbol().toUpperCase();
+  
+  debugPrint( "  "  + "\n" );
+
+  debugPrint( "diff2.getValue(0)    : " + diff2.getValue(0) +  "\n" );  
+  debugPrint( "diff1.getValue(0)    : " + diff1.getValue(0) +  "\n" );  
+  debugPrint( "getCurrentBarCount() : " + getCurrentBarCount() +  "\n" );  
+  debugPrint( "Symbol               : " + xSymbol  + "\n" );
+
+  debugPrint( "-TRO_BuySellPressure-  : "  + "\n" );
+}
+ 
+
+
+setBarFgColor(xBG1Color, 0);
+
+return  ( xVal3  )  ; 
+}
+
+
+
+//==rnd will round to N digits.
+function rnd(value, N) {
+    var n;
+    var mult=1;
+    for(n=0;n<N;n++) mult*=10;
+    value*=mult;
+    return Math.round( value,N)/mult;
+}
+
+function editParameters() {
+    askForInput("TRO_BuySellPressure");
+    return;
+}
+
+
+function fDiff( x , y) { 
+   return( eval(x.getValue(0) - y.getValue(0) ) ); 
+} 
+
+/*
+
+https://www.tradestation.com/Discussions/Topic.aspx?Topic_ID=36005
+
+inputs: len(20),thresh(1.5);
+
+value1=averagefc(close-low,len);
+value2=averagefc(high-close,len);
+value3=((value1-value2)/close)*100;
+if value3>= thresh and h<h[1] then setplotcolor(1,green);
+if value3<= -thresh and l>l[1] then setplotcolor(1,red);
+*/
+
+ 

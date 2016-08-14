@@ -1,0 +1,97 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2009. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    Barbara Star Swing Study - Signals
+    
+Version:            1.0  08/08/2009
+ 
+Formula Parameters:                                             Default:
+
+RSI Length          - Length for the RSI                             3                          
+MA Length          - Length for the Moving Avg of                    3           
+Signal Color Up     - Signal Color when MA RSI crosses above       Green
+                      80
+
+Signal Color Down   - Signal Color when MA RSI crosses below         Red
+                      20
+                      
+Signal Size         - Signal (Diamond)  size                         10
+                      
+    
+    
+    
+Notes:
+    The related article is copyrighted material. If you are not a subscriber
+    of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+
+debugClear();
+var bNewBar = false;
+var bAlert = false;
+var xRSI = null;
+var xRT = null;
+var bInit = false;
+
+function preMain() {
+	setStudyTitle("350 Swing Alert");
+	setPriceStudy(true);
+	
+	setDefaultPriceBarColor(Color.black);
+	
+	setShowCursorLabel(false);
+	
+	var fp1 = new FunctionParameter("nRSILength", FunctionParameter.NUMBER);
+	fp1.setName("RSI Length");
+	fp1.setDefault(3);
+	
+	var fp2 = new FunctionParameter("nMALength", FunctionParameter.NUMBER);
+	fp2.setName("MA Length");
+	fp2.setDefault(3);
+	
+	var fp3 = new FunctionParameter("cUpColor", FunctionParameter.COLOR);
+	fp3.setName("Signal Color UP");
+	fp3.setDefault(Color.green);
+	
+	var fp4 = new FunctionParameter("cDownColor", FunctionParameter.COLOR);
+	fp4.setName("Signal Color DOWN");
+	fp4.setDefault(Color.red);
+	
+	var fp5 = new FunctionParameter("SignalSize", FunctionParameter.NUMBER);
+	fp5.setName("Diamond Size");
+	fp5.setDefault(10);
+}
+function main(nRSILength, nMALength, cUpColor, cDownColor, SignalSize) {
+
+var ci = getCurrentBarIndex();
+
+	if (!bInit) {
+		xRSI = rsi(nRSILength);
+		xMA = sma(nMALength, xRSI);
+		xRT= rawtime();
+		bInit = true;
+	}
+	
+	var nMA = xMA.getValue(0);
+	if (nMA == null) return;
+	
+	var nRT = xRT.getValue(0);
+	
+	if (nMA >= 80) 
+        drawTextRelative (0, AboveBar2, "\u0075", cDownColor, null, Text.PRESET | Text.CENTER | Text.ONTOP, "Wingdings",SignalSize , "tagDown" + nRT );
+	else 
+        removeText("tagDown" + nRT);
+
+    if (nMA <= 20) 
+        drawTextRelative (0, BelowBar2, "\u0075", cUpColor, null , Text.PRESET | Text.CENTER | Text.ONTOP, "Wingdings",SignalSize  , "tagUp" + nRT);
+    else
+        removeText("tagUp" + nRT);
+	
+}

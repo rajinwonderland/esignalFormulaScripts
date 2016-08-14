@@ -1,0 +1,223 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright © 2013) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+
+Description:        
+    Stochastic Indicator by John F. Ehlers
+
+Formula Parameters:                     Default:
+Length                                  20
+    
+Version:            1.00  11/07/2013
+
+Notes:
+    The related article is copyrighted material. If you are not a subscriber
+    of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+
+var fpArray = new Array();
+
+function preMain()
+{   
+    setStudyTitle("MESA_Stochastic_Indicator");
+
+    setCursorLabelName("BandLine1", 0);
+    setCursorLabelName("BandLine2", 1);
+    setCursorLabelName("MyStochastic", 2);
+    
+    setDefaultBarFgColor(Color.grey, 0);
+    setDefaultBarFgColor(Color.grey, 1);
+    setDefaultBarFgColor(Color.red, 2);
+
+    setDefaultBarThickness(1, 0);
+    setDefaultBarThickness(1, 1);
+    setDefaultBarThickness(2, 2);
+
+    setShowCursorLabel(false, 0);
+    setShowCursorLabel(false, 1);
+    setShowCursorLabel(true, 2);
+
+    var x = 0;
+
+    fpArray[x] = new FunctionParameter("fpLength", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+        setName("Length");
+        setLowerLimit(2);
+        setDefault(20);
+    }
+}
+
+var bInit = false;
+var bVersion = null;
+
+var xHP = null;
+var xFilt = null;
+var xStoc = null;
+var xMyStochastic = null;
+
+var nBandLine1 = 0;
+var nBandLine2 = 0;
+
+function main(fpLength) 
+{
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;
+
+    if (!bInit)
+    {                   
+        xHP = efsInternal("Calc_HPSeries");
+        xFilt = efsInternal("Calc_FiltSeries", xHP);
+        xStoc = efsInternal("Calc_Stoc", xFilt, fpLength);
+        xMyStochastic = efsInternal("Calc_MyStochastic", xStoc);
+
+        nBandLine1 = 0.8;
+        nBandLine2 = 0.2;
+
+        bInit = true;
+    }
+
+    var nMyStochastic = xMyStochastic.getValue(0);
+
+    return [nBandLine1, nBandLine2, nMyStochastic];
+}
+
+var xClose = null;
+
+var alpha1 = 0;
+
+function Calc_HPSeries()
+{
+    if (getBarState() == BARSTATE_ALLBARS)
+    {
+        xClose = close();
+
+        alpha1 = (Math.cos((.707*360 / 48) * Math.PI / 180) + 
+                  Math.sin((.707*360 / 48) * Math.PI / 180) - 1) / 
+                  Math.cos((.707*360 / 48) * Math.PI / 180);
+    } 
+
+    var nClose_0 = xClose.getValue(0);
+    var nClose_1 = xClose.getValue(-1);
+    var nClose_2 = xClose.getValue(-2);
+
+    if (nClose_1 == null || nClose_2 == null)
+        return; 
+
+    var nHP_1 = ref(-1);
+    var nHP_2 = ref(-2);
+
+    var nReturnValue = (1 - alpha1 / 2) * (1 - alpha1 / 2) * (nClose_0 - 2 * nClose_1 + nClose_2)
+                       + 2 * (1 - alpha1) * nHP_1 - (1 - alpha1) * (1 - alpha1) * nHP_2;
+
+    return nReturnValue;
+}
+
+var a1 = 0;
+var b1 = 0;
+var c1 = 0;
+var c2 = 0;
+var c3 = 0;
+
+function Calc_FiltSeries(xHP)
+{
+    if (getBarState() == BARSTATE_ALLBARS)
+    {
+        a1 = Math.exp(-1.414 * 3.14159 / 10);
+        b1 = 2 * a1 * Math.cos((1.414 * 180 / 10)* Math.PI / 180);
+        c2 = b1;
+        c3 = -a1 * a1;
+        c1 = 1 - c2 - c3;
+    } 
+
+    var nHP_0 = xHP.getValue(0);
+    var nHP_1 = xHP.getValue(-1);
+
+    if (nHP_0 == null || nHP_1 == null)
+        return; 
+
+    var nFilt_1 = ref(-1);
+    var nFilt_2 = ref(-2);
+
+    var nReturnValue = c1 * (nHP_0 + nHP_1) / 2 + c2 * nFilt_1 + c3 * nFilt_2;
+
+    return nReturnValue;
+}
+
+function Calc_Stoc(xFilt, nLength)
+{  
+    var nFilt = xFilt.getValue(0);
+    var nHighestC = xFilt.getValue(0);
+    var nLowestC = xFilt.getValue(0);
+   
+    if (nHighestC == null || nLowestC == null || nFilt == null)
+        return;
+
+    for (var i = 0; i < nLength; i++) 
+    {
+       nFilt_i = xFilt.getValue(-i);
+       
+       if (nFilt_i == null)
+           return;
+       
+       if (nFilt_i > nHighestC)
+           nHighestC =  nFilt_i;
+       if (nFilt_i < nLowestC)
+           nLowestC =  nFilt_i;
+    }
+
+    var nReturnValue = (nFilt - nLowestC) / (nHighestC - nLowestC);
+
+    return nReturnValue;
+}
+
+function Calc_MyStochastic(xStoc)
+{
+    if (getBarState() == BARSTATE_ALLBARS)
+    {
+        a1 = Math.exp(-1.414 * 3.14159 / 10);
+        b1 = 2 * a1 * Math.cos((1.414 * 180 / 10)* Math.PI / 180);
+        c2 = b1;
+        c3 = -a1 * a1;
+        c1 = 1 - c2 - c3;
+    } 
+    
+    var nStoc_0 = xStoc.getValue(0);
+    var nStoc_1 = xStoc.getValue(-1);
+       
+    if (nStoc_0 == null || nStoc_1 == null)
+        return;
+
+    var nMyStochastic_1 = ref(-1);
+    var nMyStochastic_2 = ref(-2);
+  
+    var nReturnValue = c1 * (nStoc_0 + nStoc_1) / 2 + c2 * nMyStochastic_1 + c3 * nMyStochastic_2;
+
+    return nReturnValue;
+}
+
+function verify() 
+{
+    var b = false;
+    if (getBuildNumber() < 779) 
+    {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } 
+    else 
+    {
+        b = true;
+    }
+
+    return b;
+}

@@ -1,0 +1,176 @@
+/****
+
+TRO_SCALP_HiLo 4:54 PM 9/7/2006 PLOTS SCALP LINES.
+ 
+got the idea from Hubert's Video Link:  Unconventional Tactics
+
+http://clicks.aweber.com/z/ct/?xVJLRByqoKWTXGtTu9ZEMg
+
+
+ 
+Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne,  
+
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+please include this and/or any other comment blocks and a 
+description of any changes you make.
+
+
+
+****/
+
+
+var xColor  = Color.black ;
+
+var x1a = null;     
+var x1b = null;        
+var y1a = null;         
+var y1b = null;         
+var x1aTest = 0 ; 
+
+var xHH      = 0 ; 
+var xLL      = 0 ; 
+var xLgEntry = 0 ; 
+var xShEntry = 0 ; 
+
+var newDay = true;
+var tInit = true;
+
+
+function preMain() {
+
+    setStudyTitle("TRO_SCALP_HiLo");
+    setPriceStudy(true);
+
+    setCursorLabelName("LgEntry", 0);
+    setCursorLabelName("Low", 1);
+
+    setCursorLabelName("ShEntry", 2);
+    setCursorLabelName("High", 3);
+
+    setDefaultBarThickness(2,0); 
+    setDefaultBarThickness(2,1); 
+    setDefaultBarThickness(2,2); 
+    setDefaultBarThickness(2,3); 
+  
+    setPlotType(PLOTTYPE_FLATLINES,0);  
+    setPlotType(PLOTTYPE_FLATLINES,1);  
+    setPlotType(PLOTTYPE_FLATLINES,2);  
+    setPlotType(PLOTTYPE_FLATLINES,3);  
+
+    setDefaultBarFgColor(Color.cyan,0);
+    setDefaultBarFgColor(Color.maroon,1);
+    setDefaultBarFgColor(Color.magenta,2);
+    setDefaultBarFgColor(Color.darkgreen,3);
+
+
+    var iDecimals = new FunctionParameter("iDecimals", FunctionParameter.NUMBER);
+	iDecimals.setDefault( 4 ); 
+
+    var iDebug = new FunctionParameter("iDebug", FunctionParameter.BOOLEAN);
+	iDebug.setDefault( false );
+
+
+    var iButtonX = new FunctionParameter("iButtonX", FunctionParameter.NUMBER);
+	iButtonX.setDefault( 5 ); 
+
+    var iButtonY = new FunctionParameter("iButtonY", FunctionParameter.NUMBER);
+	iButtonY.setDefault( 15 ); 
+
+    var iFontSize = new FunctionParameter("iFontSize", FunctionParameter.NUMBER);
+        iFontSize.setName("Button Font Size");
+	iFontSize.setDefault( 10 ); 
+
+}
+
+
+function main( iDebug , iDecimals,  iFontSize, iButtonX, iButtonY  ) {
+
+  // initialize upon first loading formula
+    if(getBarState() == BARSTATE_ALLBARS) {
+        drawTextPixel(iButtonX, iButtonY, " TRO_SCALP_HiLo@URL=EFS:editParameters", Color.white, Color.green, 
+            Text.RELATIVETOLEFT|Text.RELATIVETOBOTTOM|Text.ONTOP|Text.BOLD|Text.BUTTON, 
+            "Comic Sans MS", 13, "UpExp");
+    return null;
+    }
+
+if( tInit == true) {
+  xSymbol = getSymbol().toUpperCase();
+  if( xSymbol == "EUR A0-FX" ) { iDecimals = 4 ;}
+  vInt = getInterval();
+  tInit == false ;
+}
+
+if (vInt == "D" || vInt == "W" || vInt == "M") return;
+
+var nState = getBarState();
+
+ 
+if (nState == BARSTATE_NEWBAR) {
+        if (newDay == false && getDay() != getDay(-1) && getDay(-1) != null) { newDay = true; }
+        if (newDay == true) {
+           newDay = false ; 
+           xHH      = low(0) ; 
+           xShEntry = 0 ; 
+           xLL      = high(0) ; 
+           xLgEntry = 0 ; 
+        }
+
+}
+
+if( high(0) > xHH ) {
+    xHH      = high(0);
+    xShEntry = low(0);
+}
+
+
+if( low(0) < xLL ) {
+    xLL      = low(0);
+    xLgEntry = high(0);
+}
+
+
+
+
+// DEBUG 
+
+if(iDebug == true ) {
+
+
+  debugPrint( "xDMid1          : " +  xDMid1  + "\n" );
+  debugPrint( "xDMid           : " +  xDMid   + "\n" );
+  debugPrint( "xDLow1          : " +  xDLow1  + "\n" );
+  debugPrint( "xDHigh1         : " + xDHigh1  + "\n" );
+//  debugPrint( "xDClose         : " + xDClose  + "\n" );
+  debugPrint( "xDLow           : " +  xDLow  + "\n" );
+  debugPrint( "xDHigh          : " + xDHigh  + "\n" );
+//  debugPrint( "xDOpen          : " + xDOpen   + "\n" ); 
+
+  debugPrint( "getCurrentBarCount() : " + getCurrentBarCount() +  "\n" );  
+  debugPrint( "Symbol          : " + xSymbol  + "\n" );
+
+  debugPrint( "----------------: "  + "\n" );
+
+
+}
+
+
+return new Array( xLgEntry  , xLL , xShEntry  , xHH  ) ;
+
+}
+
+// rnd function - round to iDecimals places
+function rnd(value, iDecimals ) {  
+
+value =  value * Math.pow(10, iDecimals);
+
+    return Math.round(value, iDecimals) / Math.pow(10, iDecimals);
+}
+
+function editParameters() {
+    askForInput("TRO_SCALP_HiLo");
+    return;
+}
+

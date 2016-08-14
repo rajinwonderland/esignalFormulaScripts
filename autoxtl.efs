@@ -1,0 +1,119 @@
+function preMain() {
+	setStudyTitle("Auto XTL");
+	setPriceStudy(true);
+}
+
+var xtl = new GetXTLStudy(35);
+
+var XTL_DOWN	= 0
+var XTL_UP	= 1
+var XTL_NEUTRAL	= 2
+
+var vLastXTL = null;
+var nBarOffset = 0;
+
+function main() {
+	var nState = getBarState();
+	if(nState == BARSTATE_CURRENTBAR)
+		return;
+
+	// Syntax is getValue(GetXTLStudy.XTL, 0, -xxx);		
+	var vXTL = xtl.getValue(0);
+	
+	if(vXTL == null)
+		return;
+
+	if(vLastXTL != null) {
+		if(vXTL == XTL_DOWN && vLastXTL != XTL_DOWN) {
+			clearText();
+			clearLineTool(LineTool.SEGMENT);
+			var vH = high(nBarOffset);
+			var vL = low(nBarOffset);
+			
+			if(vH == null || vL == null)
+				return;
+				
+			var vHL50 = (vH - vL) * 0.5;
+			var vEntry = vL - vHL50;
+			var vExit = vH + vHL50;
+			var vStop = vEntry - (vExit - vEntry) * 1.618;
+			
+
+			addLineTool(LineTool.SEGMENT, getCurrentBarIndex()+nBarOffset, vH, getCurrentBarIndex() + 5, vH, 2, Color.black, "tag");
+			addLineTool(LineTool.SEGMENT, getCurrentBarIndex()+nBarOffset, vL, getCurrentBarIndex() + 5, vL, 2, Color.black, "tag");
+
+			addLineTool(LineTool.SEGMENT, getCurrentBarIndex()+nBarOffset, vEntry, getCurrentBarIndex() + 5, vEntry, 2, Color.red, "tag");
+			addLineTool(LineTool.SEGMENT, getCurrentBarIndex()+nBarOffset, vExit, getCurrentBarIndex() + 5, vExit, 2, Color.red, "tag");
+			addLineTool(LineTool.SEGMENT, getCurrentBarIndex()+nBarOffset, vStop, getCurrentBarIndex() + 5, vStop, 2, Color.red, "tag");
+			addLineTool(LineTool.SEGMENT, getCurrentBarIndex()+nBarOffset, vStop, getCurrentBarIndex()+nBarOffset, vExit, 1, Color.yellow, "tag");
+
+			drawTextRelative(nBarOffset, vEntry, "Short@ " + vEntry, 
+				Color.red, null,
+				Text.BOTTOM | Text.RIGHT | Text.ONTOP | Text.BOLD, 
+				null, null, "BuyEntry" + getValue("rawtime"));
+
+			drawTextRelative(nBarOffset, vExit, "Cover@ " + vExit, 
+				Color.red, null,
+				Text.BOTTOM | Text.RIGHT | Text.ONTOP | Text.BOLD, 
+				null, null, "SellEntry" + getValue("rawtime"));
+
+			drawTextRelative(nBarOffset, vStop, "Stop@ " + vStop, 
+				Color.red, null,
+				Text.BOTTOM | Text.RIGHT | Text.ONTOP | Text.BOLD, 
+				null, null, "StopEntry" + getValue("rawtime"));
+
+
+
+		} else if(vXTL == XTL_UP && vLastXTL != XTL_UP) {
+			clearText();
+			clearLineTool(LineTool.SEGMENT);
+			
+			var vH = high(nBarOffset);
+			var vL = low(nBarOffset);
+			
+			if(vH == null || vL == null)
+				return;
+				
+			var vHL50 = (vH - vL) * 0.5;
+			var vEntry = vH + vHL50;
+			var vExit = vL - vHL50;
+			var vStop = vEntry + (vEntry - vExit) * 1.618;
+			
+
+			addLineTool(LineTool.SEGMENT, getCurrentBarIndex()+nBarOffset, vH, getCurrentBarIndex() + 5, vH, 2, Color.black, "tag");
+			addLineTool(LineTool.SEGMENT, getCurrentBarIndex()+nBarOffset, vL, getCurrentBarIndex() + 5, vL, 2, Color.black, "tag");
+
+			addLineTool(LineTool.SEGMENT, getCurrentBarIndex()+nBarOffset, vEntry, getCurrentBarIndex() + 5, vEntry, 2, Color.blue, "tag");
+			addLineTool(LineTool.SEGMENT, getCurrentBarIndex()+nBarOffset, vExit, getCurrentBarIndex() + 5, vExit, 2, Color.blue, "tag");
+			addLineTool(LineTool.SEGMENT, getCurrentBarIndex()+nBarOffset, vStop, getCurrentBarIndex() + 5, vStop, 2, Color.blue, "tag");
+			addLineTool(LineTool.SEGMENT, getCurrentBarIndex()+nBarOffset, vStop, getCurrentBarIndex()+nBarOffset, vExit, 1, Color.yellow, "tag");
+
+			drawTextRelative(nBarOffset, vEntry, "Buy@ " + vEntry, 
+				Color.blue, null,
+				Text.BOTTOM | Text.RIGHT | Text.ONTOP | Text.BOLD, 
+				null, null, "BuyEntry" + getValue("rawtime"));
+
+			drawTextRelative(nBarOffset, vExit, "Sell@ " + vExit, 
+				Color.blue, null,
+				Text.BOTTOM | Text.RIGHT | Text.ONTOP | Text.BOLD, 
+				null, null, "SellEntry" + getValue("rawtime"));
+
+			drawTextRelative(nBarOffset, vStop, "Stop@ " + vStop, 
+				Color.blue, null,
+				Text.BOTTOM | Text.RIGHT | Text.ONTOP | Text.BOLD, 
+				null, null, "StopEntry" + getValue("rawtime"));
+
+
+
+
+				
+		
+		}
+	}
+
+	vLastXTL = vXTL;
+}
+
+
+
+

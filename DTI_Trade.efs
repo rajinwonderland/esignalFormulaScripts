@@ -1,0 +1,166 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2009. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    Trade Directional Trend Index (Trade DTI)
+
+Version:            1.0  03/19/2009
+
+Formula Parameters:                     Default:
+    r                                    14
+    s                                    10
+    u                                    5
+
+Notes:
+    This is one of the techniques described by William Blau in his book 
+    "Momentum, Direction and Divergence" (1995). His book focuses on three 
+    key aspects of trading: momentum, direction and divergence. Blau, who 
+    was an electrical engineer before becoming a trader, thoroughly examines 
+    the relationship between price and momentum in step-by-step examples. 
+    From this grounding, he then looks at the deficiencies in other oscillators 
+    and introduces some innovative techniques, including a fresh twist on Stochastics. 
+    On directional issues, he analyzes the intricacies of ADX and offers a unique 
+    approach to help define trending and non-trending periods.
+
+**********************************/
+
+var fpArray = new Array();
+var bInit = false;
+
+function preMain() {
+    setPriceStudy(false);
+    setStudyTitle("Trade Directional Trend Index");
+    setCursorLabelName("DTI Trade", 0);
+    setCursorLabelName("DTI", 1);
+    setDefaultBarFgColor(Color.green, 0);
+    setDefaultBarFgColor(Color.blue, 1);
+    setPlotType(PLOTTYPE_DOT, 0);
+    setDefaultBarThickness(2, 0);
+    addBand(0, PS_SOLID, 1, Color.red);    
+
+    var x=0;    
+    fpArray[x] = new FunctionParameter("r", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setLowerLimit(1);		
+        setDefault(14);
+    }
+
+    fpArray[x] = new FunctionParameter("s", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setLowerLimit(1);		
+        setDefault(10);
+    }
+
+    fpArray[x] = new FunctionParameter("u", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setLowerLimit(1);		
+        setDefault(5);
+    }
+}
+
+var nDTI_Ref = 0;
+var nDTI = 0;
+var xHMU = null;
+var xLMD = null;
+var xPrice = null;
+var xPriceAbs = null;
+var xuXA = null;
+var xuXAAbs = null;
+
+function main(r, s, u) {
+var nVal4 = 0;
+var nVal5 = 0;
+var nDTI_Trade = 0;
+var nBarState = getBarState();
+    if(nBarState == BARSTATE_ALLBARS) {
+        if (r == null) r = 14;
+        if (s == null) s = 10;
+        if (u == null) u = 5;
+    }
+    if (nBarState == BARSTATE_NEWBAR) {
+        nDTI_Ref = nDTI;
+    }
+    if ( bInit == false ) { 
+        xHMU = efsInternal("Calc_HMU");
+        xLMD = efsInternal("Calc_LMD");
+        xPrice = efsInternal("Calc_Price", xHMU, xLMD);
+        xPriceAbs = efsInternal("Calc_PriceAbs", xPrice);
+        xuXA = ema(u, ema(s, ema(r, xPrice)));
+        xuXAAbs = ema(u, ema(s, ema(r, xPriceAbs)));
+        bInit = true; 
+    } 
+
+    if (getCurrentBarCount() < Math.max(Math.max(r, s), u)) return;
+
+    var Val1 = 100 * xuXA.getValue(0);
+    var Val2 = xuXAAbs.getValue(0);
+    if (Val2 != 0) nDTI = Val1 / Val2;
+    else nDTI = 0;
+    
+    if (((nDTI - nDTI_Ref) > 0) && (nDTI > 0)) nVal4 = nDTI;
+    else Val4 = 0;
+    if (((nDTI - nDTI_Ref) < 0) && (nDTI < 0)) nVal5 = nDTI;
+    else Val5 = 0;
+    nDTI_Trade = nVal4 + nVal5;
+    if (nDTI_Trade == null) return;
+    
+    return new Array(nDTI_Trade, nDTI);
+}
+
+function Calc_PriceAbs(xPrice) {
+var nRes = 0;
+    nRes = Math.abs(xPrice.getValue(0));
+    if (nRes == null) nRes = 1;
+    return nRes;
+}
+
+function Calc_Price(xHMU, xLMD) {
+var nRes = 0;
+    nRes = xHMU.getValue(0) - xLMD.getValue(0);
+    if (nRes == null) nRes = 1;
+    return nRes;
+}
+
+var xHmom = null;
+var xHInit = false;
+
+function Calc_HMU() {
+var nRes = 0;
+var nHmom = 0;
+    if (xHInit == false) {
+        xHmom = mom(1,high());
+        xHInit = true;
+    }
+    nHmom = xHmom.getValue(0);
+    if (nHmom == null) return;
+    if (nHmom > 0) {
+        nRes = nHmom;
+    }
+    else nRes = 0;
+    return nRes;
+}
+
+var xLmom = null;
+var xLInit = false;
+
+function Calc_LMD() {
+var nRes = 0;
+var nLmom = 0;
+    if (xLInit == false) {
+        xLmom = mom(1,low());
+        xLInit = true;
+    }
+    nLmom = xLmom.getValue(0);
+    if (nLmom == null) return;
+    if (nLmom < 0) {
+        nRes = -(nLmom);
+    }
+    else nRes = 0;
+    return nRes;
+}

@@ -1,0 +1,175 @@
+/***************************************
+Provided By : eSignal (c) Copyright 2006
+Description:  Trading With An Adaptive Price Zone
+              by Lee Leibfarth
+
+Version 1.0  07/06/2006
+
+Notes:
+* Sept 2006 Issue of Stocks and Commodities Magazine
+* Study requires version 8.0 or higher.
+* Study is designed for Back Testing.
+
+
+Formula Parameters:                 Defaults:
+Period                              20
+Band Percent                        2
+ADX Period                          14
+ADX Smoothing                       14
+ADX Threshold                       30
+***************************************/
+
+
+function preMain() {
+    setPriceStudy(true);
+    setStudyTitle("Adaptive Price Zone Strategy ");
+    setShowTitleParameters(false);
+    setCursorLabelName("Upper Band", 0);
+    setCursorLabelName("Lower Band", 1);
+    setCursorLabelName("ADX", 2);
+    setDefaultBarFgColor(Color.blue, 0);
+    setDefaultBarFgColor(Color.blue, 1);
+    setDefaultBarFgColor(Color.green, 2);
+    setDefaultBarThickness(2, 0);
+    setDefaultBarThickness(2, 1);
+    setDefaultBarStyle(PS_DOT, 0);
+    setDefaultBarStyle(PS_DOT, 1);
+    setDefaultFont("Ariel", 12);
+    
+
+    var fp1 = new FunctionParameter("nPeriods", FunctionParameter.NUMBER);
+        fp1.setName("Period");
+        fp1.setLowerLimit(1);
+        fp1.setDefault(20);
+    var fp2 = new FunctionParameter("nBandPct", FunctionParameter.NUMBER);
+        fp2.setName("Band Percent");
+        fp2.setLowerLimit(0);
+        fp2.setDefault(2);
+    var fp3 = new FunctionParameter("nADXPeriods", FunctionParameter.NUMBER);
+        fp3.setName("ADX Period");
+        fp3.setLowerLimit(1);
+        fp3.setDefault(14);
+    var fp4 = new FunctionParameter("nADXSmoothing", FunctionParameter.NUMBER);
+        fp4.setName("ADX Smoothing");
+        fp4.setLowerLimit(1);
+        fp4.setDefault(14);
+    var fp5 = new FunctionParameter("nADXThreshold", FunctionParameter.NUMBER);
+        fp5.setName("ADX Threshold");
+        fp5.setLowerLimit(0);
+        fp5.setDefault(30);
+}
+
+var bVersion = null;
+var bInit = false;
+var bBackTest = true;
+var vPosition = null;
+
+var xAPZ = null;
+var xAPZ_Upper = null;  // Upper Band
+var xAPZ_Lower = null;  // Lower Band
+
+function main(nPeriods, nBandPct, nADXPeriods, nADXSmoothing, nADXThreshold) {    
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;    
+
+    if (bInit == false) {
+        xAPZ = efsInternal("calcAPZ", nPeriods, nBandPct);
+        bInit = true;
+    }
+    
+    if (xAPZ_Upper == null) xAPZ_Upper = getSeries(xAPZ, 0);  // Upper Band
+    if (xAPZ_Lower == null) var xAPZ_Lower = getSeries(xAPZ, 1);  // Lower Band
+    var nAPZ_Upper = xAPZ_Upper.getValue(0);
+    var nAPZ_Lower = xAPZ_Lower.getValue(0);
+    var nAPZ_Upper_1 = xAPZ_Upper.getValue(-1);
+    var nAPZ_Lower_1 = xAPZ_Lower.getValue(-1);
+    var nADX_0 = adx(nADXPeriods, nADXSmoothing, 0);
+    var nADX_1 = adx(nADXPeriods, nADXSmoothing, -1);
+    if (nAPZ_Upper_1 == null || nAPZ_Lower_1 == null || nADX_1 == null) return;
+
+    if (getCurrentBarIndex() == 0) bBackTest = false;
+    
+    if (vPosition != null && nADX_1 > nADXThreshold) {  // Exit signal
+        if (vPosition == "long") {
+            drawText("Sell", AboveBar3, Color.red, Text.BOLD|Text.CENTER, "t"+rawtime(0));
+            drawShape(Shape.DOWNARROW, AboveBar2, Color.red, "s"+rawtime(0));
+            vPosition = null;
+            Alert.playSound("ding.wav");
+            if (bBackTest == true) {
+                Strategy.doSell("Sell", Strategy.MARKET, Strategy.THISBAR);
+            }
+        } else if (vPosition == "short") {
+            drawText("Cover", BelowBar3, Color.red, Text.BOLD|Text.CENTER, "t"+rawtime(0));
+            drawShape(Shape.UPARROW, BelowBar2, Color.red, "s"+rawtime(0));
+            vPosition = null;
+            Alert.playSound("ding.wav");
+            if (bBackTest == true) {
+                Strategy.doCover("Cover", Strategy.MARKET, Strategy.THISBAR);
+            }
+        }
+    } else if (nADX_1 <= nADXThreshold) {  // Entry signal        
+        if (vPosition != "short" && high(-1) >= nAPZ_Upper_1) { // Short signal
+            vPosition = "short";
+            drawText("Short", AboveBar3, Color.blue, Text.BOLD|Text.CENTER, "t"+rawtime(0));
+            drawShape(Shape.DOWNARROW, AboveBar2, Color.blue, "s"+rawtime(0));
+            Alert.playSound("pop.wav");
+            if (bBackTest == true) {
+                Strategy.doShort("Short", Strategy.MARKET, Strategy.THISBAR);
+            }
+        } 
+        if (vPosition != "long" && low(-1) <= nAPZ_Lower_1) { // Long signal
+            vPosition = "long";
+            drawText("Long", BelowBar3, Color.blue, Text.BOLD|Text.CENTER, "t"+rawtime(0));
+            drawShape(Shape.UPARROW, BelowBar2, Color.blue, "s"+rawtime(0));
+            Alert.playSound("pop.wav");
+            if (bBackTest == true) {
+                Strategy.doLong("Long", Strategy.MARKET, Strategy.THISBAR);
+            }
+        }
+    }
+    
+
+    return new Array(nAPZ_Upper, nAPZ_Lower, nADX_0.toFixed(6));
+}
+
+var xHL = null;
+
+function calcAPZ(nPeriods, nBandPct) {
+    if (xHL == null) xHL = efsInternal("calcHL");
+    if (isNaN(xHL.getValue(0))) return;
+    
+    //nPeriods = Math.round(Math.sqrt(nPeriods));
+    nPeriods = Math.ceil(Math.sqrt(nPeriods));
+    var Value1 = ema(nPeriods, ema(nPeriods), 0);
+    var Value2 = ema(nPeriods, ema(nPeriods, xHL), 0);
+    if (Value1 == null || Value2 == null) return;
+    
+    var UpBand = nBandPct * Value2 + Value1;
+    var DnBand = Value1 - nBandPct * Value2;
+    if (UpBand == null || DnBand == null) return;
+    
+    return new Array(UpBand, DnBand);
+}
+
+
+function calcHL() {
+    return high(0) - low(0);
+}
+
+
+function verify() {
+    var b = false;
+    if (getBuildNumber() < 779) {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } else {
+        b = true;
+    }
+    
+    return b;
+}

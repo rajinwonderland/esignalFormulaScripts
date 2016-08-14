@@ -1,0 +1,218 @@
+/****
+
+TRO_SCALP_HiLo_PMSM 4:03 PM 9/9/2006 PLOTS SCALP LINES.
+ 
+got the idea from Hubert's Video Link:  Unconventional Tactics
+
+http://clicks.aweber.com/z/ct/?xVJLRByqoKWTXGtTu9ZEMg
+
+
+ 
+Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne,  
+
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+please include this and/or any other comment blocks and a 
+description of any changes you make.
+
+
+
+****/
+
+var AlertTriggered = false;
+
+var xColor  = Color.black ;
+
+var x1a = null;     
+var x1b = null;        
+var y1a = null;         
+var y1b = null;         
+var x1aTest = 0 ; 
+
+var xHH      = 0 ; 
+var xLL      = 0 ; 
+var xLgEntry = 0 ; 
+var xShEntry = 0 ; 
+
+var newDay = true;
+var tInit = true;
+
+
+function preMain() {
+
+    setStudyTitle("TRO_SCALP_HiLo_PMSM");
+    setPriceStudy(false);
+ 
+    setShowCursorLabel( false );
+  
+  
+    setPlotType(PLOTTYPE_SQUARE,0);    
+ 
+
+    setDefaultBarThickness(4, 0);
+    setStudyMax( 1  );
+    setStudyMin( -1  );
+
+    var iDecimals = new FunctionParameter("iDecimals", FunctionParameter.NUMBER);
+	iDecimals.setDefault( 4 ); 
+
+    var iDebug = new FunctionParameter("iDebug", FunctionParameter.BOOLEAN);
+	iDebug.setDefault( false );
+
+
+    var iAlert = new FunctionParameter("iAlert", FunctionParameter.BOOLEAN);
+	iAlert.setDefault( true );
+
+    var iButtonX = new FunctionParameter("iButtonX", FunctionParameter.NUMBER);
+	iButtonX.setDefault( 5 ); 
+
+    var iButtonY = new FunctionParameter("iButtonY", FunctionParameter.NUMBER);
+	iButtonY.setDefault( 15 ); 
+
+    var iFontSize = new FunctionParameter("iFontSize", FunctionParameter.NUMBER);
+        iFontSize.setName("Button Font Size");
+	iFontSize.setDefault( 10 ); 
+
+}
+
+
+function main( iDebug , iDecimals, iAlert, iFontSize, iButtonX, iButtonY  ) {
+
+  // initialize upon first loading formula
+    if(getBarState() == BARSTATE_ALLBARS) {
+        drawTextPixel(iButtonX, iButtonY, " TRO_SCALP_HiLo_PMSM@URL=EFS:editParameters", Color.white, Color.green, 
+            Text.RELATIVETOLEFT|Text.RELATIVETOBOTTOM|Text.ONTOP|Text.BOLD|Text.BUTTON, 
+            "Comic Sans MS", 13, "UpExp");
+    return null;
+    }
+
+if( tInit == true) {
+  xSymbol = getSymbol().toUpperCase();
+  if( xSymbol == "EUR A0-FX" ) { iDecimals = 4 ;}
+  vInt = getInterval();
+  tInit == false ;
+}
+
+if (vInt == "D" || vInt == "W" || vInt == "M") return;
+
+var nState = getBarState();
+
+ 
+if (nState == BARSTATE_NEWBAR) {
+ 
+        AlertTriggered = false;
+ 
+        if (newDay == false && getDay() != getDay(-1) && getDay(-1) != null) { newDay = true; }
+        if (newDay == true) {
+           newDay = false ; 
+           xHH      = low(0) ; 
+           xShEntry = 0 ; 
+           xLL      = high(0) ; 
+           xLgEntry = 0 ; 
+        }
+
+}
+
+if( high(0) > xHH ) {
+    xHH      = high(0);
+    xShEntry = low(0);
+}
+
+
+if( low(0) < xLL ) {
+    xLL      = low(0);
+    xLgEntry = high(0);
+}
+
+
+    if( iAlert == true && AlertTriggered==false){
+        if( close(-1) <= xLgEntry && close(0) > xLgEntry ){
+            Alert.addToList(getSymbol(), xLgEntry + " Long Entry", Color.black, Color.green);
+            Alert.playSound("ding.wav");
+            AlertTriggered = true;
+        }
+
+        if( close(-1) >= xShEntry && close(0) < xShEntry ){
+            Alert.addToList(getSymbol(), xShEntry + " Short Entry", Color.black, Color.red);
+            Alert.playSound("ding.wav");
+            AlertTriggered = true;
+        }
+
+
+    }
+
+
+
+
+           sAlert = false;
+
+           xAlertFgColor = Color.white; 
+	   xAlertBgColor = Color.black; 
+
+        if( close(-1) >= xShEntry && close(0) < xShEntry ){
+            sAlert = true;
+            tAlert = xShEntry + " Short Entry" ;
+            xAlertFgColor = Color.black; 
+	    xAlertBgColor = Color.red; 
+        }
+
+        if( close(-1) <= xLgEntry && close(0) > xLgEntry  ){
+            sAlert = true;
+            tAlert = xLgEntry + " Long Entry" ;
+            xAlertFgColor = Color.black; 
+	    xAlertBgColor = Color.lime; 
+        }
+
+
+    if( iAlert == true && AlertTriggered==false && sAlert == true ){
+            Alert.addToList(getSymbol(), tAlert, xAlertFgColor,xAlertBgColor);
+            Alert.playSound("ding.wav");
+            AlertTriggered = true;      
+    }
+
+// DEBUG 
+
+if(iDebug == true ) {
+
+
+  debugPrint( "xDMid1          : " +  xDMid1  + "\n" );
+  debugPrint( "xDMid           : " +  xDMid   + "\n" );
+  debugPrint( "xDLow1          : " +  xDLow1  + "\n" );
+  debugPrint( "xDHigh1         : " + xDHigh1  + "\n" );
+//  debugPrint( "xDClose         : " + xDClose  + "\n" );
+  debugPrint( "xDLow           : " +  xDLow  + "\n" );
+  debugPrint( "xDHigh          : " + xDHigh  + "\n" );
+//  debugPrint( "xDOpen          : " + xDOpen   + "\n" ); 
+
+  debugPrint( "getCurrentBarCount() : " + getCurrentBarCount() +  "\n" );  
+  debugPrint( "Symbol          : " + xSymbol  + "\n" );
+
+  debugPrint( "----------------: "  + "\n" );
+
+
+}
+
+
+
+setBarFgColor(xAlertBgColor, 0);
+
+
+return  ( 0 ) ;
+
+}
+
+// rnd function - round to iDecimals places
+function rnd(value, iDecimals ) {  
+
+value =  value * Math.pow(10, iDecimals);
+
+    return Math.round(value, iDecimals) / Math.pow(10, iDecimals);
+}
+
+function editParameters() {
+    askForInput("TRO_SCALP_HiLo_PMSM");
+    return;
+}
+

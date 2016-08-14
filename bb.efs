@@ -1,0 +1,53 @@
+/*******************************************************************
+Description	: This Indicator plots the Bollinger Bands Indicator
+Provided By	: Developed by TS Support, LLC for eSignal. (c) Copyright 2002
+********************************************************************/
+
+function preMain() {
+	setPriceStudy(true);
+	setStudyTitle("BollingerBands");
+
+	setCursorLabelName("BBTop", 0);
+	setCursorLabelName("BBBot", 1);
+
+	setDefaultBarFgColor(Color.blue, 0); // upper
+	setDefaultBarFgColor(Color.red, 1); // basis
+
+}
+
+
+function main(Length,StdDevUp,StdDevDn) {
+	if(Length == null)
+		Length = 10;
+	if(StdDevUp == null)
+		StdDevUp = 2;
+	if(StdDevDn == null)
+		StdDevDn = -2;
+
+	var i;
+	var vSum = 0.0;
+	var vClose;
+	var BBTop;
+	var BBBot;
+	var SumSqr = 0;
+	var StdDev = 0;
+
+	vClose = getValue("Close",0,-Length);
+	if(vClose == null)
+        	return;
+	for(i = 0; i < Length; i++)
+        	vSum += vClose[i];
+
+	if(Length != 0)
+		for(i = 0; i < Length; i++)
+			SumSqr += (vClose[i] - vSum / Length) * (vClose[i] - vSum / Length);
+	StdDev = Math.sqrt(SumSqr / Length);
+	if (getBarState() == BARSTATE_NEWBAR){
+		BBTop = vSum / Length + StdDevUp * StdDev ;
+		BBBot = vSum / Length + StdDevDn * StdDev ;
+	}
+	
+	return new Array(BBTop,BBBot);
+}
+
+

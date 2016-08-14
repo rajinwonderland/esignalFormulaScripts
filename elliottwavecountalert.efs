@@ -1,0 +1,114 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright © 2010) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+	
+Description:        
+	Generating an alert when a primary Elliott Wave is completed
+
+Version:            1.0  24/05/2011
+
+
+Formula Parameters:                     Default:
+    Number of Bars                      300
+    Wave 4 Overlap                      0
+    Wave 1-3 Ratio                      50  
+    Mavg1                               5
+    Mavg2                               35
+    Alternate                           Long Term
+**********************************/
+
+
+var fpArray = new Array();
+function preMain() {
+    setPriceStudy(true);
+    setStudyTitle("Elliott Wave Count Alert");
+    setCursorLabelName("Recent Wave", 0);
+    setCursorLabelName("Trend", 1);
+
+    var x=0;
+    fpArray[x] = new FunctionParameter("nNumBars", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+        setName("Number of Bars");
+        setLowerLimit(1);
+        setDefault(300);
+    }
+    fpArray[x] = new FunctionParameter("nPct4Overlap", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+        setName("Wave 4 Overlap");
+        setLowerLimit(0);
+        setDefault(0);
+    }
+    fpArray[x] = new FunctionParameter("nPct1LenOf3", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+        setName("Wave 1-3 Ratio");
+        setLowerLimit(1);
+        setDefault(50);
+    } 
+    fpArray[x] = new FunctionParameter("nMavg1", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+        setName("Mavg1");
+        setLowerLimit(1);
+        setDefault(5);
+    } 
+    fpArray[x] = new FunctionParameter("nMavg2", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+        setName("Mavg2");
+        setLowerLimit(1);
+        setDefault(35);
+    }  
+
+    fpArray[x] = new FunctionParameter("gAlternate", FunctionParameter.STRING);
+    with(fpArray[x++])
+    {
+        setName("Alternate");
+        addOption("Agressive"); 
+        addOption("Short Term");
+        addOption("Long Term");
+        setDefault("Long Term");
+    }      
+  
+}
+
+var ElliottWave = null; 
+var prevWave = null;
+var curWaveTrended = null;
+var alertColor = new Array(Color.green, Color.blue, Color.blue, Color.blue, Color.blue, Color.blue, Color.green, Color.red, Color.red, Color.red); 
+var waveCaption = new Array('na','1','2','3','4','5','na','A','B','C');
+var ticker = getSymbol();
+var i = 0;
+var bInit = false;
+
+function main(nNumBars, nPct4Overlap, nPct1LenOf3, nMavg1, nMavg2, gAlternate) 
+{
+    if ( !bInit )
+    {
+        ElliottWave = new GetElliottStudy(nNumBars, nPct4Overlap, nPct1LenOf3, nMavg1, nMavg2, gAlternate);
+        bInit = true;
+    }
+
+    if ( getCurrentBarIndex()!=0 ) return;
+    
+    prevWave = curWaveTrended; 
+    curWaveTrended = ElliottWave.getValue(GetElliottStudy.MOSTRECENTWAVE);
+    var curWave = Math.abs( ElliottWave.getValue(GetElliottStudy.MOSTRECENTWAVE) );
+    var sTrend = ( curWaveTrended < 0 )? "Down": "Up";
+
+    if ( curWaveTrended!=prevWave ) 
+    {
+        Alert.addToList(ticker, "Wave "+waveCaption[curWave]+" ("+sTrend+") is completed", Color.black, alertColor[curWave] );
+        Alert.playSound("train.wav");
+    }
+
+    setBarFgColor(alertColor[curWave]);     
+
+    return new Array(waveCaption[curWave], sTrend);
+}

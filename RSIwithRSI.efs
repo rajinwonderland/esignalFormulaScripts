@@ -1,0 +1,198 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright © 2010) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+	
+Description:        
+    Combining RSI with RSI by Peter Konner
+ 
+Version:            1.0  11/11/2010
+
+Formula Parameters:                     Default:
+    Length of Slow RSI:                  17
+    Length of Quick RSI:                 5
+    Length of Slow MA:                   40
+    Length of Quick MA:                  10
+    Slow RSI Buy Level:                  61
+    Slow RSI Sell Level:                 39
+    Quick RSI Buy Level:                 61
+    Quick RSI Sell Level:                39
+    
+    
+Notes:
+	The related article is copyrighted material. If you are not
+	a subscriber of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+var fpArray = new Array();
+var bVersion = null;
+function preMain()
+{
+    setShowTitleParameters(false);
+    setColorPriceBars(true);
+    setDefaultBarFgColor(Color.green,0);
+    setDefaultBarFgColor(Color.red,1);
+    setShowCursorLabel(false);
+
+    var x=0;
+    fpArray[x] = new FunctionParameter("gSlowRSILen", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+	setName("Length of Slow RSI");
+	setLowerLimit(1);
+        setDefault(17);
+    }
+    fpArray[x] = new FunctionParameter("gQuickRSILen", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+	setName("Length of Quick RSI");
+	setLowerLimit(1);
+        setDefault(5);
+    }
+    fpArray[x] = new FunctionParameter("gSlowMALen", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+	setName("Length of Slow MA");
+	setLowerLimit(1);
+        setDefault(40);
+    }
+    fpArray[x] = new FunctionParameter("gQickMALen", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+	setName("Length of Quick MA");
+	setLowerLimit(1);
+        setDefault(10);
+    }
+    fpArray[x] = new FunctionParameter("gSlowBuyRSI", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+	setName("Slow RSI Buy Level");
+	setLowerLimit(1);
+        setDefault(61);
+    }
+    fpArray[x] = new FunctionParameter("gSlowSellRSI", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+	setName("Slow RSI Sell Level");
+	setLowerLimit(1);
+        setDefault(39);
+    }    
+    fpArray[x] = new FunctionParameter("gQuickBuyRSI", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+	setName("Quick RSI Buy Level");
+	setLowerLimit(1);
+        setDefault(61);
+    }
+    fpArray[x] = new FunctionParameter("gQuickSellRSI", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+	setName("Quick RSI Sell Level");
+	setLowerLimit(1);
+        setDefault(39);
+    }            
+}
+
+var xCls = null;
+var xSlowMA = null;
+var xQuickMA = null;
+var xSlowRSI = null;
+var xQuickRSI = null;
+var bInit = false;
+var b1 = false;
+var b2 = false;
+var b3 = false;
+var b4 = false;
+var b5 = false;
+var b6 = false;
+var i=0;
+function main( gSlowRSILen, gQuickRSILen, gSlowMALen, gQickMALen, gSlowBuyRSI, gSlowSellRSI, gQuickBuyRSI, gQuickSellRSI ) 
+{
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;   
+
+    if (!bInit)
+    {
+        xCls = close();
+        xSlowMA = sma(gSlowMALen);
+        xQuickMA = sma(gQickMALen);
+        xSlowRSI = rsi(gSlowRSILen);
+        xQuickRSI = rsi(gQuickRSILen);
+        bInit = true;
+    }
+
+    var vCls = xCls.getValue(0);
+
+    var vSlowRSI1 = xSlowRSI.getValue(-2);
+    var vSlowRSI0 = xSlowRSI.getValue(-1);
+    var vSlowMA = xSlowMA.getValue(-1);
+    
+    var vQuickRSI1 = xQuickRSI.getValue(-2);
+    var vQuickRSI0 = xQuickRSI.getValue(-1);
+    var vQuickMA = xQuickMA.getValue(-1);
+    
+    var vSlowRSICur = xSlowRSI.getValue(0);
+    var vQuickRSICur = xQuickRSI.getValue(0);
+    
+    b1 = (vSlowRSI1<=gSlowBuyRSI && vSlowRSI0>gSlowBuyRSI && vCls>vSlowMA);
+    b2 = ((vSlowRSI1>=gSlowSellRSI && vSlowRSI0<gSlowSellRSI )|| vCls<vSlowMA);
+    
+    if (!b1 && b2) {b3=false; b4=true}
+    else if (b1 && !b2) {b3=true; b4=false};
+
+    b1 = (vQuickRSI1<=gQuickBuyRSI && vQuickRSI0>gQuickBuyRSI && vCls>vQuickMA && b4);
+    b2 = (vQuickRSI1>=gQuickSellRSI && vQuickRSI0<gQuickSellRSI)||(vCls<vQuickMA);
+    
+    if (!b1 && b2){b5=false; b6=true}
+    else if (b1 && !b2){b5=true; b6=false}
+    
+    b1 = (b3 && b5)||(b3 && b6)||(b4 && b5);
+    b2 = (b4 && b6);
+    
+    if (Strategy.isLong())
+    {
+        if (b2)
+        {
+            drawShapeRelative(0, TopRow2,  Shape.DOWNTRIANGLE, null, Color.red, Shape.PRESET, "sell"+(i++)); 
+            drawTextRelative(0, TopRow1, " Sell ", Color.white, Color.red, Text.PRESET | Text.CENTER, "Arial", 10, "sell"+(i++));
+            setPriceBarColor(Color.red);
+            Strategy.doSell("Long Exit Signal", Strategy.MARKET, Strategy.THISBAR);
+        }
+    }
+    else
+    {
+        if (b1)
+        {
+            drawShapeRelative(0, TopRow1,  Shape.UPTRIANGLE, null, Color.green, Shape.PRESET, "buy"+(i++)); 
+            drawTextRelative(0, TopRow2, " Buy ", Color.white, Color.green, Text.PRESET | Text.CENTER, "Arial", 10, "buy"+(i++));
+            setPriceBarColor(Color.green);
+            Strategy.doLong("Entry Long", Strategy.MARKET, Strategy.THISBAR);
+        }
+
+    }
+    if (Strategy.isLong())
+    {
+       setBarBgColor(Color.yellow);
+    }
+    
+    return new Array (vQuickRSICur, vSlowRSICur, gSlowBuyRSI,gSlowSellRSI,gQuickBuyRSI,gQuickSellRSI);
+}
+
+function verify() {
+    var b = false;
+    if (getBuildNumber() < 779) {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } else {
+        b = true;
+    }
+    return b;
+}

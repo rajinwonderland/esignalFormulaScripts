@@ -1,0 +1,60 @@
+/*******************************************************************
+Description	: This Indicator plots Keltner Bands as shown in TASC_Feb_2012 article by Barbara Star: 
+Trade Breakouts And Retracements With TMV  
+
+Provided By	: TS Support, LLC. (c) Copyright 2002 
+
+Modified KeltnerChannels.efs with change Factor = 2.5 to = 1  
+
+
+********************************************************************/
+
+function preMain() {
+    setPriceStudy(true);
+    
+    /* Set the title that will appear in the study pane */
+    setStudyTitle("Keltner");
+
+    /* Set the label that will appear in the cursor window */
+    setCursorLabelName("K-Upper", 0);
+    setCursorLabelName("K-Basis", 1);
+    setCursorLabelName("K-Lower", 2);
+
+    setDefaultBarFgColor(Color.blue, 0); // upper
+	setDefaultBarFgColor(Color.red, 1); // basis
+	setDefaultBarFgColor(Color.blue, 2); // lower
+}
+
+
+function main(nInputLength, nConst) {
+	if(nInputLength == null)
+		nInputLength = 20;
+	if(nInputLength <= 0)
+		nInputLength = 20;
+	
+	var Factor = 1;//Changed from 2.5
+	if (nConst != null) Factor = nConst;
+
+
+	var vHigh = getValue("High", 0, -nInputLength);
+	var vLow = getValue("Low", 0, -nInputLength);
+	var vClose = getValue("Close", 0, -nInputLength);
+	if(vHigh == null || vLow == null || vClose == null)
+		return;
+
+	var vHLC3 = 0;
+	var vHminL = 0;
+	var i;
+
+	for(i = 0; i < nInputLength; i++) {
+		vHLC3 += (vHigh[i] + vLow[i] + vClose[i]) / 3;
+		vHminL += vHigh[i] - vLow[i];
+	}
+
+	vHLC3 /= nInputLength;
+	vHminL /= nInputLength;
+	vHminL *= Factor;
+
+
+	return new Array(vHLC3 + vHminL, vHLC3, vHLC3 - vHminL);
+}

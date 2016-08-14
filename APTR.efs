@@ -1,0 +1,114 @@
+/*************************************
+Provided By:  
+    Novvum Consulting Group (2015) 
+All rights reserved. This eSignal Formula Script (EFS) is meant to serve as an adoption of the average percentage true range which was published by Vitali Apirine and interpreted by Raj K Singh
+
+Description:        
+    Average Percentage True Range by Vitali Apirine interpreted by Raj K Singh
+
+Formula Parameters:                     Default:
+Length                                  14
+
+Version:            1.00  11/17/2015
+***************************************/
+
+var fpArray = new Array(); 
+
+function preMain(){
+
+    setStudyTitle("APTR");
+    
+    setCursorLabelName("APTR", 0);
+    
+    var x = 0;
+
+    fpArray[x] = new FunctionParameter("fpLength", FunctionParameter.NUMBER);
+    with(fpArray[x++]){
+        setName("Length");
+        setLowerLimit(1); 
+        setDefault(14);
+    }
+}
+
+var bInit = false;
+var bVersion = null;
+
+var xATRS = null;
+var xAPTR = null;
+
+function main(fpLength){
+
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;
+
+    if (!bInit){
+        
+        xATRS = efsInternal('Calc_ATRS');
+        xAPTR = smma(fpLength, xATRS);
+                      
+        bInit = true; 
+    };
+    
+    nAPTR = xAPTR.getValue(0);
+
+    if (nAPTR == null)
+        return;
+
+    return [nAPTR * 100];
+}
+
+var xHigh = null;
+var xLow = null;
+var xClose = null;
+
+function Calc_ATRS(){
+    
+    if (getBarState() == BARSTATE_ALLBARS){
+        xHigh = high();
+        xLow = low();
+        xClose = close();
+    }
+    
+    var nHigh = xHigh.getValue(0);
+    var nLow = xLow.getValue(0);
+    var nPrevClose = xClose.getValue(-1);
+
+    if (nHigh == null || nLow == null || nPrevClose == null)
+        return;
+    
+    var nHL = nHigh - nLow;
+    var nHC = Math.abs(nHigh - nPrevClose);
+    var nLC = Math.abs(nLow - nPrevClose);
+    
+    var nMax = Math.max(nHL, nHC, nLC);
+    
+    if (nMax == nHC) {
+        nMid = nPrevClose + nMax / 2;
+    }
+
+    if (nMax == nLC || nMax == nHL){
+        nMid = nLow + nMax / 2;    
+    } 
+    
+    nATRS = nMax / nMid;
+    
+    return [nATRS];
+}
+
+function verify(){
+    var b = false;
+    if (getBuildNumber() < 3742){
+        
+        drawTextAbsolute(5, 35, "This study requires version 12.1 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } 
+    else
+        b = true;
+    
+    return b;
+}

@@ -1,0 +1,70 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2009. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    Barbara Star Swing Study - 350 Swing Indicator
+    
+Version:            1.0  08/08/2009
+ 
+Formula Parameters:                                         Default:
+
+RSI Length          - Length for the RSI                             3                          
+    
+    
+    
+Notes:
+    The related article is copyrighted material. If you are not a subscriber
+    of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+
+var xRSI = null;
+var bInit = false;
+var bCharts = false;
+
+function preMain() {
+	setStudyTitle("RSI 3");
+	setShowCursorLabel(true);
+	setShowTitleParameters(true);
+	setPriceStudy(false);
+	
+    setStudyMin(0);	
+    setStudyMax(100);
+	
+	setCursorLabelName("RSI 3", 0);
+	setDefaultBarFgColor(Color.red, 0);
+	setPlotType(PLOTTYPE_LINE, 0);
+	setDefaultBarThickness(2, 0);
+	
+	var fp1 = new FunctionParameter("nLength", FunctionParameter.NUMBER);
+	fp1.setName("RSI Length");
+	fp1.setDefault(3);
+	
+}
+function main(nLength) {
+	if (!bInit) {
+		xRSI = rsi(nLength);
+        addBand(30, PS_SOLID, 1, Color.grey, "30");
+        drawTextAbsolute(-2,28,"30",Color.black,null,null,"Arial",10,"T25");
+        
+        addBand(50, PS_SOLID, 1, Color.black, "50");
+        drawTextAbsolute(-2,53,"50",Color.black,null,null,"Arial",10,"T50");
+        
+        addBand(70, PS_SOLID, 1, Color.grey, "70");
+        drawTextAbsolute(-2,83,"70",Color.black,null,null,"Arial",10,"T80");
+		bInit = true;
+	}
+
+	var nRSI = xRSI.getValue(0);
+	if (nRSI == null) return;
+	
+	
+	return  nRSI;
+	
+}

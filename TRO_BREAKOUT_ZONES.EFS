@@ -1,0 +1,265 @@
+/****
+
+TRO_BREAKOUT_ZONES 1:25 PM 8/27/2006  PLOTS BREAKOUT ZONE LINES
+
+Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne,  
+
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+please include this and/or any other comment blocks and a 
+description of any changes you make.
+
+
+ATTN ESIGNAL: I DID NOT POST THIS CODE ON YOUR FORUM
+              I AM NOT RESPONSIBLE FOR ANY ESIGNAL FORUM RULE VIOLATIONS.
+
+****/
+
+/********************
+Alexis C. Montenegro © April 2004                         
+Use and or modify this code freely. If you redistribute it
+please include this and or any other comment blocks and a 
+description of any changes you make. .
+**************************/
+
+debugClear(); 
+
+
+
+function preMain() {
+
+    setPriceStudy(true);
+    setStudyTitle("TRO_BREAKOUT_ZONES");
+    setCursorLabelName("LG B/O Top ", 0);
+    setCursorLabelName("LG B/O Bot ", 1);
+    setCursorLabelName("Open     ", 2);
+    setCursorLabelName("SH B/O Top", 3);
+    setCursorLabelName("SH B/O Bot", 4);
+    setCursorLabelName("PrevClose", 5);
+    setCursorLabelName("PrevMid", 6);
+    setCursorLabelName("MidPoint", 7);
+
+
+    setDefaultBarFgColor(Color.blue,0);
+    setDefaultBarFgColor(Color.blue,1);
+    setDefaultBarFgColor(Color.green,2);
+    setDefaultBarFgColor(Color.red,3);
+    setDefaultBarFgColor(Color.red,4);
+    setDefaultBarFgColor(Color.purple,5);
+    setDefaultBarFgColor(Color.magenta,6);
+    setDefaultBarFgColor(Color.cyan,7);
+
+    setDefaultBarThickness(2,0);
+    setDefaultBarThickness(2,1);
+    setDefaultBarThickness(2,2);
+    setDefaultBarThickness(2,3);
+    setDefaultBarThickness(2,4);
+    setDefaultBarThickness(2,5);
+    setDefaultBarThickness(2,6);
+    setDefaultBarThickness(2,7);
+
+    setPlotType(PLOTTYPE_FLATLINES,0);  
+    setPlotType(PLOTTYPE_FLATLINES,1);
+    setPlotType(PLOTTYPE_FLATLINES,2);
+    setPlotType(PLOTTYPE_FLATLINES,3);
+    setPlotType(PLOTTYPE_FLATLINES,4);
+    setPlotType(PLOTTYPE_FLATLINES,5);
+    setPlotType(PLOTTYPE_FLATLINES,6);
+    setPlotType(PLOTTYPE_FLATLINES,7);
+
+}
+
+var vOpen = null;
+var vOpen1 = null;
+var vHigh = null;
+var vHigh1 = null;
+var vLow = null;
+var vLow1 = null;
+var vClose1 = null;
+
+var vMid = null;
+var vMid1 = null;
+
+
+askForInput();
+
+
+
+
+    var iDecimals = new FunctionParameter("iDecimals", FunctionParameter.NUMBER);
+	iDecimals.setDefault( 2 ); 
+
+    var iAlert = new FunctionParameter("iAlert", FunctionParameter.BOOLEAN);
+	iAlert.setDefault( true );
+
+
+    var iColorLong = new FunctionParameter("iColorLong", FunctionParameter.COLOR);
+        iColorLong.setDefault( Color.RGB(215,255,195));
+
+    var iColorShort = new FunctionParameter("iColorShort", FunctionParameter.COLOR);
+        iColorShort.setDefault( Color.RGB(254,233,233));
+
+    var iButtonX = new FunctionParameter("iButtonX", FunctionParameter.NUMBER);
+	iButtonX.setDefault( 50 ); 
+
+    var iButtonY = new FunctionParameter("iButtonY", FunctionParameter.NUMBER);
+	iButtonY.setDefault( 15 ); 
+
+function main( iDecimals, iAlert ,iColorLong , iColorShort, iButtonX , iButtonY ) {
+
+ //   if (close(-1)==null) 
+   //     return;
+
+ 
+  // initialize upon first loading formula
+
+    if(getBarState() == BARSTATE_ALLBARS) {
+        drawTextPixel( iButtonX, iButtonY , " TRO_BREAKOUT_ZONES @URL=EFS:editParameters", Color.white, Color.green, 
+            Text.RELATIVETOLEFT|Text.RELATIVETOBOTTOM|Text.ONTOP|Text.BOLD|Text.BUTTON, 
+            "Comic Sans MS", 13, "UpExp"); 
+        vDate = new Date();
+        vInterval = getInterval();
+        vSymbol = getSymbol().toUpperCase();
+    
+        // for RTH, eg, to convert, ES Z2 to ES Z2=2
+        var rootSymbol = vSymbol.substring(0,3);
+        if (rootSymbol == "ES " || rootSymbol == "NQ ") 
+            if ( vSymbol.indexOf("=2") == -1 ) vSymbol += "=2";
+    
+        vSymbol += ",D";
+ //       return null;
+    }
+
+    
+    if(getBarState()==BARSTATE_NEWBAR&&getDay()!=getDay(-1)) {
+        vHigh1 = vHigh;
+        vLow1 = vLow;
+        vOpen1 = vOpen;
+        vClose1 = formatPriceNumber( close(-1) ) * 1 ;//comment out this line if using alternate vClose1 
+        vMid1 = formatPriceNumber( vMid ) * 1 ;
+        vHigh = high();
+        vLow = low();
+        vOpen=open();
+
+    }
+
+
+
+vDailyOpen       = open(0, inv("D") ) ;
+
+vDailyHigh       = high(0, inv("D") ) ;
+
+vDailyLow        = low(0, inv("D") ) ;
+
+vDailyClose      = close(0, inv("D") ) ;
+
+vDailyMid        = rnd( ( ( vDailyHigh + vDailyLow ) * .5  ),  iDecimals) ; 
+
+
+vPrevDailyOpen       = open(-1, inv("D") ) ;
+
+vPrevDailyHigh       = high(-1, inv("D") ) ;
+
+vPrevDailyLow        = low(-1, inv("D") ) ;
+
+vPrevDailyClose      = close(-1, inv("D") ) ;
+
+vPrevDailyMid        = rnd( ( ( vPrevDailyHigh + vPrevDailyLow ) * .5  ),  iDecimals) ; 
+
+    
+vCandleTop      = Math.max( vPrevDailyOpen , vPrevDailyClose );
+vCandleBot      = Math.min( vPrevDailyOpen , vPrevDailyClose );
+
+vLongTop	= rnd( high(-1, inv("D") ),  iDecimals) ; 
+vLongBot	= rnd( vCandleTop   ,  iDecimals) ; 
+
+vShortTop	= rnd( vCandleBot  ,  iDecimals) ; 
+vShortBot	= rnd( low(-1, inv("D") ),  iDecimals) ; 
+
+
+   
+    
+    if (vOpen1 == null || vLow1 == null || vHigh1 == null || vClose1 == null) {
+        return;
+    } else {
+
+
+
+
+
+// PREVIOUS Close ALERT 
+
+    if(  ( high(-1) < vClose1 || low(0) < vClose1 ) && close(0) >= vClose1 ){
+        if( iAlert == true ) {	Alert.addToList(getSymbol(), vClose1 +" Cross above PrevClose", Color.green, Color.black);
+      Alert.playSound("ding.wav");
+     }
+}
+
+    if( ( low(-1) > vClose1 || high(0) > vClose1   ) && close(0) <= vClose1 ){
+        if( iAlert == true ) {	Alert.addToList(getSymbol(), vClose1 +" Cross below PrevClose", Color.red, Color.black);
+          Alert.playSound("ding.wav");  
+     }
+}
+
+
+//    ALERT 
+
+    if(  ( high(-1) < vOpen || low(0) < vOpen ) && close(0) >= vOpen ){
+      if( iAlert == true ) { 
+        Alert.addToList(getSymbol(), vOpen +" Cross above Open", Color.green, Color.black);
+        Alert.playSound("ding.wav");
+        }
+    }
+
+    if( ( low(-1) > vOpen || high(0) > vOpen   ) && close(0) <= vOpen ){
+        if( iAlert == true ) {
+	  Alert.addToList(getSymbol(), vOpen +" Cross below Open", Color.red, Color.black);
+          Alert.playSound("ding.wav");
+        }
+    }
+
+
+
+    if(  close(0) >= vLongBot && close(0) <= vLongTop ){
+        if( iAlert == true ) {	Alert.addToList(getSymbol(), close(0) +"Price in Long Zone", Color.green, Color.black);
+          Alert.playSound("ding.wav");
+          }
+     }
+
+ 
+
+    if(  close(0) >= vShortBot && close(0) <= vShortTop ){
+        if( iAlert == true ) {	Alert.addToList(getSymbol(), close(0) +"Price in Short Zone", Color.green, Color.black);
+          Alert.playSound("ding.wav"); 
+          }
+   }
+
+
+setBarBgColor(iColorLong ,0, vLongBot, vLongTop );
+
+setBarBgColor(iColorShort, 1, vShortBot, vShortTop );
+
+
+return new Array( vLongTop,vLongBot,vDailyOpen,vShortTop,vShortBot, vPrevDailyClose , vPrevDailyMid, vDailyMid  ) ;
+}
+}
+
+
+
+function editParameters() {
+    askForInput("TRO_BREAKOUT_ZONES");
+    return;
+}
+
+// rnd function - round to two places
+function rnd(value, iDecimals ) { // Round the price to iDecimals digits
+
+value =  value * Math.pow(10, iDecimals);
+
+    return Math.round(value, iDecimals) / Math.pow(10, iDecimals);
+}
+
+
+

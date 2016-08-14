@@ -1,0 +1,188 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright © 2010) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+	
+Description:        
+    The Price Zone Oscillator for Watch List
+ 
+Version:            1.0  15/04/2011
+
+Formula Parameters:                     Default:
+    Period                                14
+    View Type                             Text
+    Coloring Type                         Font
+    Super Overbought Color                Color.green
+    Overbought Color                      Color.lime 
+    Positive Movement Color               Color.RGB(200,255,0)
+    Flat Color                            Color.yellow
+    Negative Movement Color               Color.RGB(255,155,0) 
+    Oversold Color                        Color.maroon     
+    Super Oversold Color                  Color.red
+    
+Notes:
+    The related article is copyrighted material. If you are not
+    a subscriber of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+
+var fpArray = new Array();
+var bVersion = null;
+function preMain()
+{
+    setCursorLabelName("Price Zone Analyzer", 0);
+    
+    var x=0;
+    fpArray[x] = new FunctionParameter("gPeriod", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+	setName("Period");
+	setLowerLimit(1);
+        setDefault(14);
+    }
+
+    fpArray[x] = new FunctionParameter("gViewOption", FunctionParameter.STRING);
+    with(fpArray[x++])
+    {
+        setName("View Type");
+        addOption("Value");
+        addOption("Text");
+        addOption("Sign");
+        addOption("Nothing");
+        setDefault("Text");
+    }      
+    fpArray[x] = new FunctionParameter("gColoringOption", FunctionParameter.STRING);
+    with(fpArray[x++])
+    {
+        setName("Coloring Type");
+        addOption("Font");
+        addOption("Background");
+        addOption("No coloring");
+        setDefault("Font");
+    }      
+    fpArray[x] = new FunctionParameter("gSOBColor", FunctionParameter.COLOR);
+    with(fpArray[x++])
+    {
+        setName("Super Overbought Color");
+        setDefault(Color.green);
+    }      
+    fpArray[x] = new FunctionParameter("gOBColor", FunctionParameter.COLOR);
+    with(fpArray[x++])
+    {
+        setName("Overbought Color");
+        setDefault(Color.lime);
+    }      
+    fpArray[x] = new FunctionParameter("gPosColor", FunctionParameter.COLOR);
+    with(fpArray[x++])
+    {
+        setName("Positive Movement Color");
+        setDefault(Color.RGB(200,255,0));
+    }      
+
+    fpArray[x] = new FunctionParameter("gFlatColor", FunctionParameter.COLOR);
+    with(fpArray[x++])
+    {
+        setName("Flat Color");
+        setDefault(Color.yellow);
+    }      
+
+    fpArray[x] = new FunctionParameter("gNegColor", FunctionParameter.COLOR);
+    with(fpArray[x++])
+    {
+        setName("Negative Movement Color");
+        setDefault(Color.RGB(255,155,0));
+    }      
+    
+    fpArray[x] = new FunctionParameter("gOSColor", FunctionParameter.COLOR);
+    with(fpArray[x++])
+    {
+        setName("Oversold Color");
+        setDefault(Color.maroon);
+    }      
+    fpArray[x] = new FunctionParameter("gSOSColor", FunctionParameter.COLOR);
+    with(fpArray[x++])
+    {
+        setName("Super Oversold Color");
+        setDefault(Color.red);
+    }      
+
+}
+
+var bInit = false;
+var xCls = null;
+var xR = null;
+var xCP = null;
+var xTC = null;
+
+var servTable = new Array();
+var outVal = null;
+
+function main(gPeriod, gViewOption, gColoringOption, gSOBColor, gOBColor, gPosColor, gFlatColor, gNegColor, gOSColor, gSOSColor)
+{
+
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;     
+        
+    if (!bInit)
+    {
+        xCls = close();
+        xR = efsInternal("calcSignedPrice", xCls);  
+        xCP = ema(gPeriod, xR);
+        xTC = ema(gPeriod, xCls);
+
+        servTable[0] = new Array (gSOSColor, gOSColor, gNegColor, gFlatColor, gPosColor, gOBColor, gSOBColor);
+        if (gViewOption == "Text") servTable[1] = new Array("SUPERSOLD", "OVERSOLD", "NEGATIVE", "FLAT", "POSITIVE", "OVERBOUGHT", "SUPERBOUGHT");
+        if (gViewOption == "Sign") servTable[1] = new Array("- - -", " - - ", "-", "+ / -", "+" ," + + ", "+ + +");
+
+        bInit = true;
+    }
+    var vCP = xCP.getValue(0);
+    var vTC = xTC.getValue(0);
+    if ( vCP == null ) return null;
+    var vPZO = 100;  
+    if ( vTC != 0 ) vPZO = 100 * vCP / vTC;      
+    
+    var cond = 0; 
+    if ( vPZO >= 15 ) cond = 1 ;
+    if ( vPZO >= 40 ) cond = 2 ;
+    if ( vPZO >= 60 ) cond = 3 ;    
+    if ( vPZO <=-5  ) cond = -1 ;
+    if ( vPZO <=-40 ) cond = -2 ;    
+    if ( vPZO <=-60 ) cond = -3 ;    
+
+    if ( gColoringOption == "Background" ) setBarBgColor(servTable[0][cond + 3]);
+    if ( gColoringOption == "Font" ) setBarFgColor(servTable[0][cond+3]);
+    if ( gViewOption == "Value" ) outVal = vPZO;
+    if ( gViewOption == "Text" || gViewOption == "Sign" ) outVal = servTable[1][cond + 3];
+    
+    return outVal;    
+ 
+}
+
+function calcSignedPrice(xCls)
+{
+        var vCls = xCls.getValue(0);
+        var vCls1 = xCls.getValue(-1);
+        if ( vCls1 == null ) return null;
+        vCls = (vCls1 < vCls)? vCls : -vCls;
+        return vCls;
+}
+
+function verify() {
+    var b = false;
+    if (getBuildNumber() < 779) {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } else {
+        b = true;
+    }
+    return b;
+}

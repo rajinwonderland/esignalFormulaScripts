@@ -1,0 +1,103 @@
+/****
+
+TRO_123reversal 11:57 AM 9/4/2006
+
+Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne,  
+
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+please include this and/or any other comment blocks and a 
+description of any changes you make.
+
+Copyright 2006, All Rights Reserved. Code may be modified for 
+personal use only. No portion of this code can be sold or
+otherwise redistributed without the express written consent of
+the author, Avery T. Horton, Jr.
+
+
+ATTN ESIGNAL: I DID NOT POST THIS CODE ON YOUR FORUM
+              I AM NOT RESPONSIBLE FOR ANY ESIGNAL FORUM RULE VIOLATIONS.
+
+****/
+
+
+// BUTTON CODE
+
+var bEdit = true;
+var nFontCY = 0;
+var nFontCX = 0;
+var nColWidth	= 0;
+var nRowThickness = 1;
+var nFontSize   = 10;
+
+function preMain() {
+
+setStudyTitle("TRO_123reversal");
+setPriceStudy(false);
+setShowCursorLabel( false );
+setDefaultBarThickness(4,0); 
+setPlotType(PLOTTYPE_SQUARE ,0);
+setStudyMax( 1 );
+setStudyMin( -1 );
+
+
+    var iColor01 = new FunctionParameter("iColor01", FunctionParameter.COLOR);
+        iColor01.setName("Long Color");
+        iColor01.setDefault( Color.green );
+
+    var iColor02 = new FunctionParameter("iColor02", FunctionParameter.COLOR);
+        iColor02.setName("Short Color");
+        iColor02.setDefault( Color.red );
+
+    var iColor03 = new FunctionParameter("iColor03", FunctionParameter.COLOR);
+        iColor03.setName("Wait Color");
+        iColor03.setDefault( Color.cyan );
+
+
+// BUTTON CODE
+
+    var iButtonX = new FunctionParameter("iButtonX", FunctionParameter.NUMBER);
+	iButtonX.setDefault( 5 ); 
+
+    var iButtonY = new FunctionParameter("iButtonY", FunctionParameter.NUMBER);
+	iButtonY.setDefault( 5 ); 
+
+    var iFontSize = new FunctionParameter("iFontSize", FunctionParameter.NUMBER);
+        iFontSize.setName("Button Font Size");
+	iFontSize.setDefault( 10 ); 
+
+ 
+}
+
+ askForInput();
+
+function main( iColor01 , iColor02, iColor03 , iFontSize, iButtonX, iButtonY  ) {
+
+// BUTTON CODE
+
+    if(getBarState() == BARSTATE_ALLBARS) {
+        drawTextPixel(iButtonX, iButtonY, " TRO_123reversal @URL=EFS:editParameters", Color.white, Color.green, 
+            Text.RELATIVETOLEFT|Text.RELATIVETOBOTTOM|Text.ONTOP|Text.BOLD|Text.BUTTON, 
+            "Comic Sans MS", 13, "UpExp"); 
+       
+    return null;
+    }
+
+setBarFgColor( iColor03, 0 ); 
+
+if(low(-1) < low(-2) && low() > low(-1) && close(0) > open(0) ) { setBarFgColor( iColor01, 0 ); }
+ 
+if(high(-2) < high(-1) && high() < high(-1) && close(0) < open(0)) { setBarFgColor( iColor02, 0 );}
+
+return ( 0 );
+
+}
+
+// BUTTON CODE
+
+function editParameters() {
+    askForInput("TRO_123reversal ");
+    return;
+}

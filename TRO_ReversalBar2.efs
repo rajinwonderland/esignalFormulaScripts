@@ -1,0 +1,117 @@
+/****
+
+
+TRO_ReversalBar2 4:25 PM 9/14/2006  Reversal Bar  INDICATOR
+
+Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne,  
+
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+please include this and/or any other comment blocks and a 
+description of any changes you make.
+
+Copyright 2006, All Rights Reserved. Code may be modified for 
+personal use only. No portion of this code can be sold or
+otherwise redistributed without the express written consent of
+the author, Avery T. Horton, Jr.
+
+
+ATTN ESIGNAL: I DID NOT POST THIS CODE ON YOUR FORUM
+              I AM NOT RESPONSIBLE FOR ANY ESIGNAL FORUM RULE VIOLATIONS.
+
+****/
+
+function preMain() {
+
+    setComputeOnClose();    //force this script to only update on each new bar 
+
+    setPriceStudy(false);
+    setStudyTitle("TRO_ReversalBar2");
+    setShowCursorLabel( false );
+
+//    setCursorLabelName("Rev", 0);
+//    setCursorLabelName("Down", 1);
+
+    setStudyMax( 1  );
+    setStudyMin( -1  );
+
+    setDefaultBarFgColor(Color.black,0);
+    setDefaultBarFgColor(Color.red,1);
+
+    setDefaultBarThickness(4,0); 
+    setDefaultBarThickness(4,1); 
+
+    setPlotType(PLOTTYPE_SQUARE ,0);  
+    setPlotType(PLOTTYPE_SQUARE ,1);  
+}
+
+
+    var iDebug = new FunctionParameter("iDebug", FunctionParameter.BOOLEAN);
+	iDebug.setDefault( false );
+
+ askForInput();
+
+function main( iDebug ) {
+ 
+
+  
+
+sUpReversal = close(-2) > close(-1) && // close 2 bars ago above close 1 bar ago 
+              low(-2)   > low(-1)   && // low 2 bars ago above low 1 bar ago 
+              close(-2) < open(-2)  && // red bar 2 bars ago
+              close(-1) < open(-1)  && // red bar 1 bar ago
+              close(0)  >= open(0)   && // green bar
+              close(0)  > close(-1) ;  // close above close 1 bar ago
+
+
+sDnReversal = close(-2) < close(-1) && // close 2 bars ago below close 1 bar ago 
+              high(-2)  < high(-1)  && // high 2 bars ago below high 1 bar ago 
+              close(-2) > open(-2)  && // green bar 2 bars ago
+              close(-1) > open(-1)  && // green bar 1 bar ago
+              close(0)  <= open(0)   && // red bar
+              close(0)  < close(-1) ;  // close below close 1 bar ago
+
+
+
+// DEBUG 
+
+if(iDebug == true ) {
+
+  xSymbol = getSymbol().toUpperCase();
+
+
+  debugPrint( "getCurrentBarCount() : " + getCurrentBarCount() +  "\n" );  
+  debugPrint( "Symbol          : " + xSymbol  + "\n" );
+
+  debugPrint( "----------------: "  + "\n" );
+}
+
+xTrend   = 0 ;
+xRev     = 0 ;
+
+tMessage = " " ;
+
+if( close(0)  < close(-1) ) { setBarFgColor(Color.magenta, 1); xTrend   = -1 ; }
+else { if( close(0)  > close(-1) ) { setBarFgColor(Color.cyan,1); xTrend   = 1 ;}
+else { setBarFgColor(Color.yellow, 1); } }
+
+setBarFgColor(Color.yellow, 0); 
+
+if( sUpReversal == true) { 
+  xRev = 1 ;
+  tMessage = "Up Rev" ;
+  setBarFgColor(Color.lime, 0);
+}
+else {
+if( sDnReversal == true) { 
+  xRev = -1 ;
+  tMessage = "Dn Rev" ;
+  setBarFgColor(Color.red, 0);
+}
+}
+
+return new Array( .25 , -.25);
+
+}

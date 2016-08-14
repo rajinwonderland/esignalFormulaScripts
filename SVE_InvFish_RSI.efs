@@ -1,0 +1,184 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright © 2010) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+
+Description:        
+    A Smoothed RSI Inverse Fisher Transform
+	
+Version:            1.00  08/10/2010
+
+Formula Parameters:                     Default:
+    RSI Period                          4 
+    EMA Period                          4
+
+Notes:
+    The related article is copyrighted material. If you are not a subscriber
+    of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+var fpArray = new Array();
+var bInit = false;
+var bVersion = null;
+
+function preMain() {
+    setPriceStudy(false);
+    setShowCursorLabel(true);
+    setShowTitleParameters(false);
+    setStudyTitle("SVE InvFisher RSI");
+    setCursorLabelName("SVE InvFisher RSI", 0);
+    setDefaultBarFgColor(Color.blue, 0);
+    setPlotType(PLOTTYPE_LINE, 0);
+    setDefaultBarThickness(2, 0);
+    var x=0;
+    fpArray[x] = new FunctionParameter("RSIPeriod", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("RSI Period");
+        setLowerLimit(2);		
+        setUpperLimit(30);		
+        setDefault(4);
+    }    
+    fpArray[x] = new FunctionParameter("EMAPeriod", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("EMA Period");
+        setLowerLimit(1);		
+        setUpperLimit(100);		
+        setDefault(4);
+    }    
+}
+
+var xSVEInvFisherRSI = null;
+
+function main(RSIPeriod, EMAPeriod) {
+var nBarState = getBarState();
+var nSVEInvFisherRSI = null;
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;   
+    if (nBarState == BARSTATE_ALLBARS) {
+        if (RSIPeriod == null) RSIPeriod = 4;
+        if (EMAPeriod == null) EMAPeriod = 4;
+    }    
+    if (!bInit) { 
+        xSVEInvFisherRSI = efsInternal("Calc_SVEInvFisherRSI", RSIPeriod, EMAPeriod);
+        bInit = true; 
+    }
+    nSVEInvFisherRSI = xSVEInvFisherRSI.getValue(0);
+    if (nSVEInvFisherRSI == null) return;
+    return nSVEInvFisherRSI;
+}
+
+var bSecondInit = false;
+var xRainbW = null;
+var xValueX = null;
+var xEMA1 = null;
+var xEMA2 = null;
+
+function Calc_SVEInvFisherRSI(RSIPeriod, EMAPeriod) {
+var nRes = 0;
+var nEMA1 = 0;
+var nEMA2 = 0;
+var Difference = 0;
+var ZlEma = 0;
+    if (!bSecondInit) {
+        xRainbW = efsInternal("Calc_RainbW");
+        xValueX = efsInternal("Calc_ValueX", RSIPeriod, xRainbW);
+        xEMA1 = ema(EMAPeriod, xValueX);
+        xEMA2 = ema(EMAPeriod, xEMA1);
+        bSecondInit = true;
+    }
+    nEMA1 = xEMA1.getValue(0);
+    nEMA2 = xEMA2.getValue(0);
+    if (nEMA2 == null) return;
+    Difference = nEMA1 - nEMA2;
+    ZlEma = nEMA1 + Difference;
+    nRes = ((Math.exp(2 * ZlEma) - 1) / (Math.exp(2 * ZlEma) + 1) + 1) * 50;
+    return nRes; 
+}
+
+var bThirdInit = false;
+var xWMA1 = null;
+var xWMA2 = null;
+var xWMA3 = null;
+var xWMA4 = null;
+var xWMA5 = null;
+var xWMA6 = null;
+var xWMA7 = null;
+var xWMA8 = null;
+var xWMA9 = null;
+var xWMA10 = null;
+
+function Calc_RainbW() {
+var nRes = 0;
+var nWMA1 = 0;
+var nWMA2 = 0;
+var nWMA3 = 0;
+var nWMA4 = 0;
+var nWMA5 = 0;
+var nWMA6 = 0;
+var nWMA7 = 0;
+var nWMA8 = 0;
+var nWMA9 = 0;
+var nWMA10 = 0;
+    if (!bThirdInit) {
+        xWMA1 = wma(2);
+        xWMA2 = wma(2, xWMA1);
+        xWMA3 = wma(2, xWMA2);
+        xWMA4 = wma(2, xWMA3);
+        xWMA5 = wma(2, xWMA4);
+        xWMA6 = wma(2, xWMA5);
+        xWMA7 = wma(2, xWMA6);
+        xWMA8 = wma(2, xWMA7);
+        xWMA9 = wma(2, xWMA8);
+        xWMA10 = wma(2, xWMA9);
+        bThirdInit = true;
+    }
+    nWMA1 = xWMA1.getValue(0);
+    nWMA2 = xWMA2.getValue(0);
+    nWMA3 = xWMA3.getValue(0);
+    nWMA4 = xWMA4.getValue(0);
+    nWMA5 = xWMA5.getValue(0);
+    nWMA6 = xWMA6.getValue(0);
+    nWMA7 = xWMA7.getValue(0);
+    nWMA8 = xWMA8.getValue(0);
+    nWMA9 = xWMA9.getValue(0);
+    nWMA10 = xWMA10.getValue(0);
+    if (nWMA10 == null) return;
+    nRes = (5 * nWMA1 + 4 * nWMA2 + 3 * nWMA3 + 2 * nWMA4 +
+            nWMA5 + nWMA6 + nWMA7 + nWMA8 + nWMA9 + nWMA10) / 20;    
+    return nRes;
+}
+
+var bFourInit = false;
+var xRSI_RainbW = null;
+
+function Calc_ValueX(RSIPeriod, xRainbW) {
+var nRes = 0;
+var nRSI_RainbW = null;
+    if (!bFourInit) {
+        xRSI_RainbW = rsi(RSIPeriod, xRainbW);
+        bFourInit = true;
+    }
+    nRSI_RainbW = xRSI_RainbW.getValue(0);
+    if (nRSI_RainbW == null) return;
+    nRes = 0.1 * (nRSI_RainbW - 50);    
+    return nRes;
+}
+
+function verify() {
+    var b = false;
+    if (getBuildNumber() < 779) {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } else {
+        b = true;
+    }
+    return b;
+}

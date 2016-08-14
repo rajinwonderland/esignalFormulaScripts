@@ -1,0 +1,91 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2009. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    Trend Lines
+Version:            1.0  09/14/2009
+ 
+Formula Parameters:                     Default:
+    Length                              10
+   
+Notes:
+    
+**********************************/
+var fpArray = new Array();
+var bInit = false;
+
+function preMain(){
+    setPriceStudy(true);
+    setShowCursorLabel(false);
+    setShowTitleParameters(false);
+    setStudyTitle("Trend Lines");
+    var x = 0;
+    fpArray[x] = new FunctionParameter("Length", FunctionParameter.NUMBER);
+    with(fpArray[x++]) {
+        setName("Length");
+        setLowerLimit(1);
+        setDefault(10);
+    }    
+}
+
+var xLowest = null;
+var xHighest = null;
+var r1 = 0;
+var r2 = 0;
+var rt1 = 0;
+var rt2 = 0;
+var s1 = 0;
+var s2 = 0;
+var st1 = 0;
+var st2 = 0;
+
+function main(Length) {
+var nBarState = getBarState();
+var nPos = 0;    
+var X, X1, X2, Y1, Y2, K;
+    if (nBarState == BARSTATE_ALLBARS) {
+        if(Length == null) Length = 10;
+	}
+	if (bInit == false) {
+        xHighest = highest(Length, high());
+        xLowest = lowest(Length, low());
+        bInit = true;
+	}
+    if (xLowest.getValue(-nPos) == null || xHighest.getValue(-nPos) == null) return;
+	nPos = Math.round((Length - 1)/2);    
+    if(low(-nPos) == xLowest.getValue(-1) && ((getCurrentBarCount() - nPos) - st1) >= nPos)  {
+        s2 = s1; 
+        s1 = low(-nPos);
+        st2 = st1; 
+        st1 = getCurrentBarCount() - nPos;
+    }
+    if(high(-nPos) == xHighest.getValue(-1) && ((getCurrentBarCount() - nPos) - rt1) >= nPos) {
+        r2=r1; 
+        r1 = high(-nPos);
+        rt2 = rt1; 
+        rt1 = getCurrentBarCount() - nPos;
+    }
+    X1 = -(getCurrentBarCount() - st2);
+    X2 = -(getCurrentBarCount() - st1);
+    Y1 = s2;
+    Y2 = s1;
+    K = (Y2-Y1) / (X2-X1);
+    X2 = X2 - Math.round(X1 / 2)  + Length;
+    Y2 = Y1 + K * (X2-X1); 
+    drawLineRelative(-(getCurrentBarCount() - st2), s2, X2, Y2, PS_SOLID, 2, Color.green, "Down"); 
+    X1 = -(getCurrentBarCount() - rt2);
+    X2 = -(getCurrentBarCount() - rt1);
+    Y1 = r2;
+    Y2 = r1;
+    K = (Y2-Y1) / (X2-X1);
+    X2 = X2 - Math.round(X1 / 2)  + 10;
+    Y2 = Y1 + K * (X2-X1); 
+    drawLineRelative(-(getCurrentBarCount() - rt2), r2, X2, Y2, PS_SOLID, 2, Color.red, "Up");             
+    return;
+}

@@ -1,0 +1,181 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2009. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    Trend OHLC
+    
+Version:            1.0  07/19/2009
+ 
+Formula Parameters:                     Default:
+    MA Length                           60
+    Moving Average                      SMA
+    
+Notes:
+    
+**********************************/
+var fpArray = new Array();
+var bInit = false;
+
+function preMain(){
+    setPriceStudy(true);
+    setShowCursorLabel(true);
+    setShowTitleParameters(false);
+    setStudyTitle("Trend OHLC");
+    setCursorLabelName("Mode 0", 0);
+    setDefaultBarFgColor(Color.red, 0);
+    setPlotType(PLOTTYPE_SQUAREWAVE, 0);
+    setDefaultBarThickness(1, 0);
+    setCursorLabelName("Mode 1", 1);
+    setDefaultBarFgColor(Color.blue, 1);
+    setPlotType(PLOTTYPE_SQUAREWAVE, 1);
+    setDefaultBarThickness(1, 1);
+    setCursorLabelName("Mode 2", 2);
+    setDefaultBarFgColor(Color.red, 2);
+    setPlotType(PLOTTYPE_SQUAREWAVE, 2);
+    setDefaultBarThickness(2, 2);
+    setCursorLabelName("Mode 3", 3);
+    setDefaultBarFgColor(Color.blue, 3);
+    setPlotType(PLOTTYPE_SQUAREWAVE, 3);
+    setDefaultBarThickness(2, 3);
+    var x = 0;
+    fpArray[x] = new FunctionParameter("MALength", FunctionParameter.NUMBER);
+    with(fpArray[x++]) {
+        setName("MA Length");
+        setLowerLimit(1);
+        setDefault(60);
+    }    
+    fpArray[x] = new FunctionParameter("MAType", FunctionParameter.STRING);
+	with(fpArray[x++]){
+        setName("Moving Average");
+        addOption("sma");
+        addOption("ema");
+        addOption("wma");
+        addOption("vwma");
+        setDefault("sma");
+    }    
+}
+
+var xTrend_H = null;
+var xTrend_L = null;
+var xTrend_O = null;
+var xTrend_C = null;
+
+function main(MALength, MAType) {
+var nBarState = getBarState();
+var nTH = 0;
+var nTL = 0;
+var nTO = 0;
+var nTC = 0;
+    if (nBarState == BARSTATE_ALLBARS) {
+        if(MAType == null) MAType = "sma";
+        if(MALength == null) MALength = 60;
+	}
+	if (bInit == false) {
+        xTrend_L = efsInternal("Calc_TrendOHLC", MALength, MAType);
+        xTrend_H = getSeries(xTrend_L, 1);
+        xTrend_O = getSeries(xTrend_L, 2);
+        xTrend_C = getSeries(xTrend_L, 3);
+        bInit = true;
+	}
+	nTO = xTrend_O.getValue(0);
+	nTH = xTrend_H.getValue(0);
+	nTL = xTrend_L.getValue(0);
+	nTC = xTrend_C.getValue(0);
+	if (nTO == null || nTH == null || nTL == null || nTC == null) return;
+    if (nTL < nTH) {
+        setBarBgColor(Color.lightgrey,0,nTL,nTH)
+    } else {
+        setBarBgColor(Color.grey,0,nTL,nTH)    
+    }    
+    if (nTO < nTC) {
+        setBarBgColor(Color.lime,1,nTO,nTC)
+    } else {
+        setBarBgColor(Color.red,1,nTO,nTC)    
+    }
+    return new Array(nTL, nTH, nTO, nTC);
+}
+
+var bSecondInit = false;
+var xmaOpen = null;
+var xmaClose = null;
+var xmaLow = null;
+var xmaHigh = null;
+var haOpen1 = 0;
+var haOpen = 0;
+
+function Calc_TrendOHLC(MALength, MAType) {
+var nBarState = getBarState();
+var nmaOpen = 0;
+var nmaClose = 0;
+var nmaLow = 0;
+var nmaHigh = 0;
+var nmaOpen1 = 0;
+var nmaClose1 = 0;
+var nmaLow1 = 0;
+var nmaHigh1 = 0;
+var haHigh = 0;
+var haLow = 0;
+var haClose = 0;
+var haClose = 0;
+var nResLow = 0;
+var nResHigh = 0;
+    if (bSecondInit == false) {
+        xmaOpen = efsInternal("CalcMA", MALength, MAType, "open");
+        xmaClose =  efsInternal("CalcMA", MALength, MAType, "close");
+        xmaLow =  efsInternal("CalcMA", MALength, MAType, "low");
+        xmaHigh =  efsInternal("CalcMA", MALength, MAType, "high");
+        haOpen = open(0);
+        haOpen1 = haOpen;
+        bSecondInit =  true;
+    }
+    nmaOpen = xmaOpen.getValue(0);
+    nmaClose= xmaClose.getValue(0);
+    nmaLow  = xmaLow.getValue(0);
+    nmaHigh = xmaHigh.getValue(0);
+    nmaOpen1 = xmaOpen.getValue(-1);
+    nmaClose1= xmaClose.getValue(-1);
+    nmaLow1  = xmaLow.getValue(-1);
+    nmaHigh1 = xmaHigh.getValue(-1);
+    if (nmaOpen1 == null || nmaHigh1  == null || nmaLow1  == null || nmaClose1 == null) return;
+    if (nBarState == BARSTATE_NEWBAR) {
+        haOpen1 = haOpen;
+    }
+    haClose = (nmaOpen + nmaHigh + nmaLow + nmaClose) /4;
+    haOpen =  (haOpen1 + (nmaOpen1 + nmaHigh1 + nmaLow1 + nmaClose1) / 4) / 2;
+    haHigh = Math.max(nmaHigh, Math.max(haOpen, haClose));
+    haLow = Math.min(nmaLow, Math.min(haOpen, haClose));
+    if (haOpen < haClose) {
+        nResLow = haLow;
+        nResHigh = haHigh;
+    } else {
+        nResLow = haHigh;
+        nResHigh = haLow;
+    }
+    return new Array(nResLow, nResHigh, haOpen, haClose);
+}
+
+var bThirdInit = false;
+var xTMPMA1 = null;
+var xTMPMA2 = null;
+
+function CalcMA(MALength, MAType, Source) {
+var nRes = 0;
+var nTMPMA1 = 0;
+var nTMPMA2 = 0;
+    if (bThirdInit == false) {
+        xTMPMA1 = eval(MAType)(Math.round(MALength/2), eval(Source)());
+        xTMPMA2 = eval(MAType)(MALength, eval(Source)());        
+        bThirdInit = true;
+    }
+    nTMPMA1 = xTMPMA1.getValue(0);
+    nTMPMA2 = xTMPMA2.getValue(0);
+    if (nTMPMA1 == null || nTMPMA2 == null) return;
+    nRes = nTMPMA1 * 2 - nTMPMA2;
+    return nRes;
+}

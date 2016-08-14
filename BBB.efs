@@ -1,0 +1,61 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2008. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    Bull And Bear Balance Indicator 
+
+Version:            1.0  10/15/2008
+
+Notes:
+    This new indicator analyzes the balance between bullish and
+    bearish sentiment.
+    One can cay that it is an improved analogue of Elder Ray indicator.
+    To get more information please see "Bull And Bear Balance Indicator" 
+    by Vadim Gimelfarb in S&C magazine. 
+
+    This script requires that Bull_Power.efs and Bear_Power.efs are located 
+    in the same folder.
+
+Formula Parameters:                     Default:
+
+
+**********************************/
+
+var bInit = false;
+
+function preMain(){
+    setStudyTitle("BBB");
+    setCursorLabelName("BBB",0);
+    setShowCursorLabel(false, 1);
+    setDefaultBarFgColor(Color.red, 0);
+    setDefaultBarFgColor(Color.brown, 1);
+    setPlotType(PLOTTYPE_HISTOGRAM, 1);
+}
+
+var xBull_p = null;
+var xBear_p = null;
+
+function main(){
+var nBBB = 0;
+
+    if ( bInit == false ) { 
+        xBull_p = efsExternal("bull_power.efs");
+        xBear_p = efsExternal("bear_power.efs");
+        bInit = true; 
+    } 
+
+	nBBB =  xBull_p.getValue(0) - xBear_p.getValue(0);
+	
+	if(nBBB < 0)
+		setDefaultBarFgColor(Color.red,0);
+	else
+		setDefaultBarFgColor(Color.blue,0);
+		
+	return new Array(nBBB, nBBB);
+}

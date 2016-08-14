@@ -1,0 +1,72 @@
+/*****************************************************************
+Provided By : eSignal. (c) Copyright 2003
+*****************************************************************/
+
+function preMain() {
+	setPriceStudy(true);
+	setStudyTitle("Bollinger Bands (EMA of Basis Line)");
+	setCursorLabelName("Upper Band", 0);
+	setCursorLabelName("EMA Basis", 1);
+	setCursorLabelName("Lower Band", 2);
+	setDefaultBarFgColor(Color.blue, 0);    // upper band
+	setDefaultBarFgColor(Color.red, 1);     // basis line
+	setDefaultBarFgColor(Color.blue, 2);    // lower band
+}
+
+var vEMA = null;
+var vEMA1 = null;
+
+var dPercent = 0.0;
+var bPrimed = false;
+
+function EMA(nLength, nClose) {
+	var nBarState = getBarState();
+	var dSum = 0.0;
+	var dRef;
+
+	if(nBarState == BARSTATE_ALLBARS || bPrimed == false) {
+		dPercent = (2.0 / (nLength + 1.0));
+		bPrimed = false;
+	}
+
+    if (nBarState == BARSTATE_NEWBAR) {
+        vEMA1 = vEMA;
+    }
+
+	if(bPrimed == false) {
+	    for(i = 0; i < nLength; i++) {
+		    dSum += nClose[i];
+	    }
+		bPrimed = true;
+		return (dSum / nLength);
+	} else {
+		return (((close() - vEMA1) * dPercent) + vEMA1);
+	}
+}
+
+function main(nLength, nStdDev) {
+	if(nLength == null || nLength <= 0) nLength = 20;
+	if(nStdDev == null) nStdDev = 2;
+
+	var vClose = getValue("Close", 0, -nLength);
+	if(vClose == null) return;
+    
+    var sumX = 0;
+    var sumX2 = 0;
+    for (i = 0; i < nLength; ++i) {
+        sumX += vClose[i];
+        sumX2 += (vClose[i] * vClose[i])
+    }
+    var meanX = (sumX/nLength);
+    var StdDev = Math.sqrt((sumX2/nLength) - (meanX*meanX));
+
+    vEMA = EMA(nLength, vClose);
+    
+	var vUpper = vEMA + (nStdDev * StdDev);
+	var vBasis = vEMA;
+	var vLower = vEMA - (nStdDev * StdDev);
+
+	return new Array(vUpper, vBasis, vLower);
+}
+
+

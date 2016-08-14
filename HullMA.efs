@@ -1,0 +1,94 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright © 2010) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+	
+Description:        
+    Moving Average by Alan Hull
+
+Version:            1.0  13/10/2010
+
+Formula Parameters:                     Default:
+    HMA Period                          10
+
+Notes:
+	The related article is copyrighted material. If you are not
+	a subscriber of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+
+var fpArray = new Array();
+var bVersion = null;
+function preMain()
+{
+    setPriceStudy(true);
+    setStudyTitle("HMA");
+    setCursorLabelName("HMA", 0 );
+    setDefaultBarFgColor(Color.red, 0); 
+
+    var x=0;
+    fpArray[x] = new FunctionParameter("gHMAPeriod", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+        setName("HMA Period");
+        setLowerLimit(1);
+        setDefault(10);
+    }
+}
+
+var bInit = false;
+var xHMAArg = null;
+var xHMA = null;
+var xSlowWMA = null;
+var xFastWMA = null;
+function main(gHMAPeriod)
+{
+    var nBarState = getBarState();
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;   
+    if (nBarState == BARSTATE_ALLBARS) {
+        if (gHMAPeriod == null) gHMAPeriod = 10;
+    }    
+    
+    if(getCurrentBarCount() <= gHMAPeriod) return;
+
+    if (!bInit)
+    {
+        xFastWMA = wma(Math.floor(gHMAPeriod/2));
+        xSlowWMA = wma(gHMAPeriod);
+        xHMAArg = efsInternal("calcHMAArg", xSlowWMA, xFastWMA);
+        xHMA = wma(Math.floor(Math.sqrt(gHMAPeriod)),xHMAArg);
+        bInit = true;
+    }
+    var vHMA = xHMA.getValue(0);
+    if (vHMA == null) return ;
+
+    return  vHMA;
+}
+
+function calcHMAArg(xSlowWMA, xFastWMA)
+{
+    var vSlowVMA = xSlowWMA.getValue(0);
+    var vFastVMA = xFastWMA.getValue(0);
+    if (vSlowVMA == null) return;
+    return 2*vFastVMA - vSlowVMA;
+}
+
+function verify() {
+    var b = false;
+    if (getBuildNumber() < 779) {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } else {
+        b = true;
+    }
+    return b;
+}

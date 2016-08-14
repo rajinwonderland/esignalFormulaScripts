@@ -1,0 +1,340 @@
+/****
+
+
+TRO_DYNAMIC_FibsSRP 11:11 AM 12/16/2007 PLOT DYNAMIC SUPPORT/RESISTANCE with fibs/projections
+ 
+Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne,  
+
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+please include this and/or any other comment blocks and a 
+description of any changes you make.
+
+
+ATTN ESIGNAL: I DID NOT POST THIS CODE ON YOUR FORUM
+              I AM NOT RESPONSIBLE FOR ANY ESIGNAL FORUM RULE VIOLATIONS.
+
+****/
+
+//debugClear(); 
+
+function preMain() {
+
+    setPriceStudy(true);
+    setStudyTitle("TRO_DYNAMIC_FibsSRP");
+    setShowTitleParameters( false );
+
+    setCursorLabelName("Dyn_R", 0);
+    setCursorLabelName("Dyn_S", 1);
+    setCursorLabelName("Dyn_77", 2);
+    setCursorLabelName("Dyn_61", 3);
+    setCursorLabelName("Dyn_50", 4);
+    setCursorLabelName("Dyn_38", 5);
+    setCursorLabelName("Dyn_23", 6);
+    setCursorLabelName("R2 Proj", 7);
+    setCursorLabelName("R1 Proj", 8);
+    setCursorLabelName("S1 Proj", 9);
+    setCursorLabelName("S2 Proj", 10);
+
+    setDefaultBarFgColor(Color.red,0);
+    setDefaultBarFgColor(Color.blue,1);    
+    setDefaultBarFgColor(Color.teal,2);
+    setDefaultBarFgColor(Color.khaki,3);
+    setDefaultBarFgColor(Color.grey,4);
+    setDefaultBarFgColor(Color.khaki,5);
+    setDefaultBarFgColor(Color.teal,6);
+    setDefaultBarFgColor(Color.brown,7);
+    setDefaultBarFgColor(Color.brown,8);
+    setDefaultBarFgColor(Color.brown,9);
+    setDefaultBarFgColor(Color.brown,10);
+
+    setDefaultBarThickness(2,0); 
+    setDefaultBarThickness(2,1); 
+    setDefaultBarThickness(2,2);
+    setDefaultBarThickness(2,3); 
+    setDefaultBarThickness(2,4); 
+    setDefaultBarThickness(2,5); 
+    setDefaultBarThickness(2,6); 
+    setDefaultBarThickness(2,7); 
+    setDefaultBarThickness(2,8); 
+    setDefaultBarThickness(2,9); 
+    setDefaultBarThickness(2,10); 
+
+    setPlotType(PLOTTYPE_SQUARE ,0);
+    setPlotType(PLOTTYPE_SQUARE ,1);  
+    setPlotType(PLOTTYPE_SQUARE ,2);
+    setPlotType(PLOTTYPE_SQUARE ,3); 
+    setPlotType(PLOTTYPE_SQUARE ,4);
+    setPlotType(PLOTTYPE_SQUARE ,5);  
+    setPlotType(PLOTTYPE_SQUARE ,6);
+    setPlotType(PLOTTYPE_SQUARE ,7);  
+    setPlotType(PLOTTYPE_SQUARE ,8);
+    setPlotType(PLOTTYPE_SQUARE ,9);  
+    setPlotType(PLOTTYPE_SQUARE ,10);
+
+    var iDebug = new FunctionParameter("iDebug", FunctionParameter.BOOLEAN);
+	iDebug.setDefault( false );
+
+    var iAlert = new FunctionParameter("iAlert", FunctionParameter.BOOLEAN);
+	iAlert.setDefault( false );
+
+
+
+    var iDecimals = new FunctionParameter("iDecimals", FunctionParameter.NUMBER);
+	iDecimals.setDefault( 4 ); 
+
+    var iPlot = new FunctionParameter("iPlot", FunctionParameter.BOOLEAN);
+ 	iPlot.setDefault( true );
+
+
+    var iPeriods = new FunctionParameter("iPeriods", FunctionParameter.NUMBER);
+	iPeriods.setDefault( 05 );
+
+    var iLevelP1 = new FunctionParameter("iLevelP1", FunctionParameter.NUMBER);
+	iLevelP1.setDefault( .382 ); 
+
+
+    var iLevelP2 = new FunctionParameter("iLevelP2", FunctionParameter.NUMBER);
+	iLevelP2.setDefault( .618 );
+
+    var iLevel1 = new FunctionParameter("iLevel1", FunctionParameter.NUMBER);
+	iLevel1.setDefault( .24 ); 
+
+
+    var iLevel2 = new FunctionParameter("iLevel2", FunctionParameter.NUMBER);
+	iLevel2.setDefault( .382 );
+
+    var iLevel3 = new FunctionParameter("iLevel3", FunctionParameter.NUMBER);
+	iLevel3.setDefault( .500 ); 
+
+
+    var iLevel4 = new FunctionParameter("iLevel4", FunctionParameter.NUMBER);
+	iLevel4.setDefault( .618 ); 
+
+
+    var iLevel5 = new FunctionParameter("iLevel5", FunctionParameter.NUMBER);
+	iLevel5.setDefault( .76 ); 
+}
+
+var Dynamic_77 	   	= 0;
+var Dynamic_61 	   	= 0;
+var Dynamic_50 	   	= 0;
+var Dynamic_38 	   	= 0;
+var Dynamic_23 	   	= 0;
+
+var Dynamic_R 	   	= 0;
+var Dynamic_S 	        = 0;
+var OldDynamic_R 	= 0;
+var OldDynamic_S 	= 0;
+var PrevDynamic_R 	= 0;
+var PrevDynamic_S 	= 0;
+
+
+var xHH_CL      = 0 ; 
+var xCL_LL      = 0 ; 
+var xLgEntry = 0 ; 
+var xShEntry = 0 ;  
+
+// askForInput();
+
+
+function main( iAlert , iPlot,  iDecimals, iPeriods, iDebug,
+            iLevelP1,iLevelP2,   iLevel1,iLevel2,iLevel3,iLevel4,iLevel5   ) {
+
+//    if (close(-1)==null) 
+   //     return;
+      
+
+
+  // initialize upon first loading formula
+
+    if(getBarState() == BARSTATE_ALLBARS) {
+        drawTextPixel( 5, 45, " TRO_DYNAMIC_FibsSRP @URL=EFS:editParameters", Color.white, Color.green, 
+            Text.RELATIVETOLEFT|Text.RELATIVETOBOTTOM|Text.ONTOP|Text.BOLD|Text.BUTTON, 
+            "Comic Sans MS", 13, "UpExp"); 
+        vDate = new Date();
+        vInterval = getInterval();
+        vSymbol = getSymbol().toUpperCase();
+    
+        // for RTH, eg, to convert, ES Z2 to ES Z2=2
+        var rootSymbol = vSymbol.substring(0,3);
+        if (rootSymbol == "ES " || rootSymbol == "NQ ") 
+            if ( vSymbol.indexOf("=2") == -1 ) vSymbol += "=2";
+    
+        vSymbol += ",D";
+ //       return null;
+    } 
+
+ 	if ( PrevDynamic_R==null)  PrevDynamic_R = 0;
+
+ 	if ( PrevDynamic_S==null)  PrevDynamic_S = 0;
+
+
+    if( getBarState() == BARSTATE_NEWBAR && getDay() != getDay(-1) ) {
+   	 Dynamic_R =    high() ;  // dynamic Resistance
+   	 Dynamic_S =    low() ;  // dynamic Suport
+
+         PrevDynamic_R = high() ;
+         PrevDynamic_S = low() ;
+           xShEntry = high()  ; 
+           xLgEntry = low() ; 
+    }
+
+
+
+if ( Dynamic_R != PrevDynamic_R ) {
+	OldDynamic_R = PrevDynamic_R ; 
+	}
+		
+if ( Dynamic_S != PrevDynamic_S ) {
+	OldDynamic_S  = PrevDynamic_S ; 
+	}
+	
+OldDynamic_R = PrevDynamic_R ;
+OldDynamic_S = PrevDynamic_S ;
+
+PrevDynamic_R = Dynamic_R ;
+PrevDynamic_S = Dynamic_S ;
+
+
+
+var xHH = highest( iPeriods , high() ) ;  // dynamic Resistance
+var xLL = lowest( iPeriods , low() ) ;  // dynamic Suport
+
+Dynamic_R =   rnd(xHH, iDecimals); // dynamic Resistance 
+Dynamic_S =   rnd(xLL, iDecimals); // dynamic Suport
+
+
+
+   
+if ( Dynamic_R != high(0) && Dynamic_R < PrevDynamic_R ) {
+	 if ( PrevDynamic_R != 0 ) {
+		Dynamic_R = PrevDynamic_R;
+         }
+}
+	
+
+if ( Dynamic_S != low(0) && Dynamic_S > PrevDynamic_S ) {		
+	if ( PrevDynamic_S != 0 ) {
+		Dynamic_S = PrevDynamic_S;
+        }
+}
+
+    
+    
+    if (Dynamic_R == null || Dynamic_S == null ) {
+        return;
+    } else {
+
+
+if(iDebug == true){
+
+debugPrint( "--------------------------------"    + "\n" );
+
+debugPrint( "DYNAMIC SUPPORT:    " + ( Dynamic_S )  + "\n" );
+debugPrint( "LOW:                " + ( low(0) ) + "\n" ); 
+debugPrint( "PrevDynamic_S:      " + ( PrevDynamic_S ) + "\n" );
+debugPrint( "xLL:                " + ( rnd(xLL)*1 ) + "\n" ); 
+
+debugPrint( "DYNAMIC RESISTANCE: " + ( Dynamic_R ) + "\n" ); 
+debugPrint( "HIGH:               " + ( high(0) )  + "\n" );
+debugPrint( "PrevDynamic_R:      " + ( PrevDynamic_R ) +  "\n" ); 
+debugPrint( "xHH:                " + ( rnd(xHH)*1) + "\n" ); 
+
+debugPrint( getValue( "Time" )      + "\n" );
+debugPrint( "------- TRO_DYNAMIC_FibsSRP ---------"    + "\n" );
+
+}
+
+//  ALERT 
+
+    if(   close(0) >= Dynamic_R ){
+      if( iAlert == true ) {
+	Alert.addToList(getSymbol(), Dynamic_R +" DYNAMIC RESISTANCE", Color.blue, Color.black);
+        Alert.playSound("ding.wav"); 
+      }
+
+
+     }
+ 
+    if(  close(0) <= Dynamic_S ){
+      if( iAlert == true ) {
+	Alert.addToList(getSymbol(), Dynamic_S +" DYNAMIC SUPPORT", Color.red, Color.black);
+        Alert.playSound("ding.wav");
+      }
+
+ 
+     }
+
+
+
+if( high(0) == Dynamic_R ) {
+    xShEntry = low(0);
+}
+
+
+if( low(0) == Dynamic_S ) {
+    xLgEntry = high(0);
+}
+ 
+
+
+var xFibRange = Dynamic_R - Dynamic_S ;
+
+
+var vFib1	=  ( iLevel1 * xFibRange ) + Dynamic_S   ; 
+var vFib2	=  ( iLevel2 * xFibRange ) + Dynamic_S   ;
+var vFib3	=  ( iLevel3 * xFibRange ) + Dynamic_S   ;
+var vFib4	=  ( iLevel4 * xFibRange ) + Dynamic_S   ;
+var vFib5	=  ( iLevel5 * xFibRange ) + Dynamic_S   ;
+ 
+
+
+var xFib1	= rnd( vFib1, iDecimals )  ; 
+var xFib2	= rnd( vFib2, iDecimals )  ; 
+var xFib3	= rnd( vFib3, iDecimals )  ; 
+var xFib4	= rnd( vFib4, iDecimals )  ; 
+var xFib5	= rnd( vFib5, iDecimals )  ; 
+ 
+
+
+var vFibP1R	=  ( iLevelP1 * xFibRange ) + Dynamic_R   ; 
+var vFibP2R	=  ( iLevelP2 * xFibRange ) + Dynamic_R   ;
+
+var xFibP1R	= rnd( vFibP1R, iDecimals )  ; 
+var xFibP2R	= rnd( vFibP2R, iDecimals )  ; 
+
+
+var vFibP1S	=  Dynamic_S - ( iLevelP1 * xFibRange ) ; 
+var vFibP2S	=  Dynamic_S - ( iLevelP2 * xFibRange )  ;
+
+var xFibP1S	= rnd( vFibP1S, iDecimals )  ; 
+var xFibP2S	= rnd( vFibP2S, iDecimals )  ; 
+
+
+if(iPlot == true ) { return new Array( Dynamic_R ,Dynamic_S , xFib5 ,xFib4 ,xFib3,xFib2,xFib1,xFibP2R,xFibP1R,xFibP1S,xFibP2S  ); }
+else{ return new Array( Dynamic_R ,Dynamic_S ); }
+    }
+}
+
+
+
+
+
+
+function editParameters() {
+    askForInput("TRO_DYNAMIC_FibsSRP");
+    return;
+}
+
+// rnd function - round to iDecimals places
+function rnd(value, iDecimals ) {  
+
+value =  value * Math.pow(10, iDecimals);
+
+    return Math.round(value, iDecimals) / Math.pow(10, iDecimals);
+}
+
+

@@ -1,0 +1,256 @@
+/****
+
+TRO_CH_CONTROL_TL  1:52 PM 8/21/2006 PLOTS CONTROL TRENDLINE
+ 
+ 
+Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne,  
+
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+please include this and/or any other comment blocks and a 
+description of any changes you make.
+
+
+
+****/
+
+
+var xColor  = Color.black ;
+
+var x1a = null;     
+var x1b = null;        
+var y1a = null;         
+var y1b = null;         
+var x1aTest = 0 ; 
+
+var newDay = true;
+var tInit = true;
+
+
+function preMain() {
+
+    setStudyTitle("TRO_CH_CONTROL_TL");
+    setPriceStudy(true);
+
+    setCursorLabelName("PrevDMid", 0);
+    setCursorLabelName("DailyMid", 1);
+
+    setDefaultBarThickness(2,0); 
+    setDefaultBarThickness(2,1); 
+  
+    setPlotType(PLOTTYPE_FLATLINES,0);  
+    setPlotType(PLOTTYPE_FLATLINES,1);  
+
+
+    var iDecimals = new FunctionParameter("iDecimals", FunctionParameter.NUMBER);
+	iDecimals.setDefault( 4 ); 
+
+
+
+    var iDebug = new FunctionParameter("iDebug", FunctionParameter.BOOLEAN);
+	iDebug.setDefault( false );
+
+    var iInterval1 = new FunctionParameter("iInterval1", FunctionParameter.STRING);
+	iInterval1.addOption("60");
+	iInterval1.addOption("D");
+        iInterval1.addOption("W");
+        iInterval1.addOption("M");
+        iInterval1.addOption("T");
+	iInterval1.setDefault( "D" ); 
+        iInterval1.setName("Interval 1");
+
+
+    var iButtonX = new FunctionParameter("iButtonX", FunctionParameter.NUMBER);
+	iButtonX.setDefault( 50 ); 
+
+    var iButtonY = new FunctionParameter("iButtonY", FunctionParameter.NUMBER);
+	iButtonY.setDefault( 15 ); 
+
+
+    var iFontSize = new FunctionParameter("iFontSize", FunctionParameter.NUMBER);
+        iFontSize.setName("Button Font Size");
+	iFontSize.setDefault( 10 ); 
+
+}
+
+
+function main( iDebug , iDecimals, iInterval1,  iFontSize, iButtonX, iButtonY  ) {
+
+  // initialize upon first loading formula
+    if(getBarState() == BARSTATE_ALLBARS) {
+        drawTextPixel(iButtonX, iButtonY, " TRO_CH_CONTROL_TL @URL=EFS:editParameters", Color.white, Color.green, 
+            Text.RELATIVETOLEFT|Text.RELATIVETOBOTTOM|Text.ONTOP|Text.BOLD|Text.BUTTON, 
+            "Comic Sans MS", 13, "UpExp");
+    return null;
+    }
+
+if( tInit == true) {
+  xSymbol = getSymbol().toUpperCase();
+  if( xSymbol == "EUR A0-FX" ) { iDecimals = 4 ;}
+  vInt = getInterval();
+  tInit == false ;
+}
+
+if (vInt == "D" || vInt == "W" || vInt == "M") return;
+
+var nState = getBarState();
+
+    // record keeping
+    if (nState == BARSTATE_NEWBAR) {
+        if (x1a != null) x1a -= 1;
+        if (x1b != null) x1b -= 1;
+    }
+
+if (nState == BARSTATE_NEWBAR) {
+        if (newDay == false && getDay() != getDay(-1) && getDay(-1) != null) { newDay = true; }
+        if (newDay == true) {
+           x1a = getCurrentBarIndex() ; 
+           x1aTest = 0 ; 
+           newDay = false ; 
+        }
+
+x1aTest = x1aTest + 1 ; 
+}
+
+
+if ( x1a == null ) return;
+ 
+
+//         xDOpen    =  open( 0 , inv(iInterval1)  ) ;
+         
+           xDHigh    =  high( 0 , inv(iInterval1) ) ;
+
+           xDLow     =  low(  0 , inv(iInterval1) ) ;
+
+           xDHigh1   =  high( -1 , inv(iInterval1) ) ;
+
+           xDLow1    =  low(  -1 , inv(iInterval1) ) ;
+
+//         xDClose   =  close( 0 , inv(iInterval1) ) ;
+
+         xDMid     =   rnd( ((xDHigh  + xDLow  ) * .50)  ,iDecimals) ;
+         xDMid1    =   rnd( ((xDHigh1 + xDLow1 ) * .50)  ,iDecimals) ;
+
+
+
+        drawTextRelative(-4, 0, "Prev Mid "+formatPriceNumber( xDMid1 ), Color.black, Color.magenta, Text.BOLD|Text.CENTER|Text.RELATIVETOTOP, "MS Sans Serif", 10, 1);
+
+        drawTextRelative(-4, 1, "Daily Mid " +formatPriceNumber( xDMid ) , Color.black, Color.cyan, Text.BOLD|Text.CENTER|Text.RELATIVETOBOTTOM, "MS Sans Serif", 10, 2);
+
+y1a = xDMid1 ;
+
+x1b = getCurrentBarIndex() ;
+
+y1b = xDMid ; 
+
+xClose = close(0) ;
+
+x1Plot = x1b - x1aTest + 1 ;
+
+if( xClose > xDMid1 && xClose > xDMid ) { xColor = Color.green ; }
+else if(  xClose < xDMid1 && xClose < xDMid ) { xColor = Color.red ; }
+else  { xColor = 5751039 ; }
+
+        drawLineRelative( x1Plot , y1a, x1b, y1b, PS_SOLID, 2, xColor, "tagid001"  );
+
+
+// DEBUG 
+
+if(iDebug == true ) {
+
+ 
+
+
+  debugPrint( "xDMid1          : " +  xDMid1  + "\n" );
+  debugPrint( "xDMid           : " +  xDMid   + "\n" );
+  debugPrint( "xDLow1          : " +  xDLow1  + "\n" );
+  debugPrint( "xDHigh1         : " + xDHigh1  + "\n" );
+//  debugPrint( "xDClose         : " + xDClose  + "\n" );
+  debugPrint( "xDLow           : " +  xDLow  + "\n" );
+  debugPrint( "xDHigh          : " + xDHigh  + "\n" );
+//  debugPrint( "xDOpen          : " + xDOpen   + "\n" ); 
+
+  debugPrint( "getCurrentBarCount() : " + getCurrentBarCount() +  "\n" );  
+  debugPrint( "Symbol          : " + xSymbol  + "\n" );
+
+  debugPrint( "----------------: "  + "\n" );
+
+
+
+
+
+/*
+
+  debugPrint( "y1b                  : " + y1b  + "\n" ); 
+  debugPrint( "x1b                  : " + x1b  + "\n" ); 
+  debugPrint( "y1a                  : " + y1a  + "\n" ); 
+  debugPrint( "x1a                  : " + x1a  + "\n" ); 
+
+  debugPrint( "getCurrentBarCount() : " + getCurrentBarCount() +  "\n" );  
+  debugPrint( "Symbol               : " + xSymbol  + "\n" );
+
+  debugPrint( "---------------------: "  + "\n" );
+*/
+}
+
+    setCursorLabelName("PrevMP-" + iInterval1  , 0);
+    setCursorLabelName("MidPoint-" + iInterval1 , 1);
+/*
+     setBarFgColor(xColor, 0);
+     setBarFgColor(xColor, 1);
+
+return new Array( ""+xDMid1  , ""+xDMid ) ;
+*/
+     setBarFgColor(Color.magenta, 0);
+     setBarFgColor(Color.cyan, 1);
+return new Array( xDMid1  , xDMid ) ;
+
+}
+
+// rnd function - round to iDecimals places
+function rnd(value, iDecimals ) {  
+
+value =  value * Math.pow(10, iDecimals);
+
+    return Math.round(value, iDecimals) / Math.pow(10, iDecimals);
+}
+
+function editParameters() {
+    askForInput("TRO_CH_CONTROL_TL ");
+    return;
+}
+
+
+/*
+
+Parameters 
+
+x1 
+ the starting bar index for the line 
+ 
+y1 
+ the starting series value for the line 
+ 
+x2 
+ the ending bar index for the line 
+ 
+y2 
+ the ending series value for the line 
+ 
+style 
+ see Pen Styles below 
+ 
+thickness 
+ integer value assigning line thickness 
+ 
+color 
+ color to use when drawing the line 
+ 
+tagID 
+ a unique identifier for this line object or null 
+ 
+
+
+*/

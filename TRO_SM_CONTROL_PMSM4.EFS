@@ -1,0 +1,1432 @@
+/****
+
+TRO_SM_CONTROL_PMSM4 11:37 AM 8/23/2006 WHO'S IN CONTROL INDICATOR POOR MAN'S SLOT MACHINE VERSION
+ 
+Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne,  
+
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+please include this and/or any other comment blocks and a 
+description of any changes you make.
+
+
+****/
+
+/****
+How I use TRO_SM_CONTROL_PMSM4: 
+
+The Major/Minor daily is the row that dictates which way to trade. 
+
+If buyer/buyers then I look to buy. 
+
+If seller/sellers then I look to short. 
+
+If Major and Minor disagree... I WAIT. NO TRADING. 
+
+Then, I look at the 60 minute row. Same rules as daily. 
+
+If I am a buyer and the 1/5/15 rows all say seller, I know the buyers will be pushing the sellers back soon. 
+
+When I see the price stop moving at DYNAMIC SUPPORT, then I buy. 
+
+When I see the price stop at dynamic resistance and the sellers take control on the 1 or 5, I sell. 
+
+This is so simple it's not funny. 
+
+All you have to do is follow the rules. 
+
+Focus on:
+
+1) who's in control ?
+
+2) is price at/near dynamic s/r 
+
+
+
+****/
+
+/*************************** 
+ 
+
+
+
+Provided By : eSignal (c) Copyright 2004
+Description:  Pixel Spacing Example
+
+drawTextPixel(xBar, yValue, Text, [FGColor], [BgColor], [Flags], 
+        [FontName], [FontSize], [TagName], [cx], [cy])
+
+This function is used to draw text on the chart at precise pixel 
+locations. It is used in conjunction with the getTextHeight() and 
+getTextWidth() functions. 
+
+xBar:  Relative position where text should appear. 
+yValue:  y-axis value where text should appear 
+Text:  The text that should be displayed 
+FGColor:  Optional. If not provided, pass null. Foreground color of the text. 
+BgColor:  Optional. if not provided, pass null. Background color of the text 
+Flags:  Text Flags (these can be ORd together). Pass null if not using flags. 
+FontName:  Optional. If not provided, pass null. Otherwise, pass a font name (e.g, "Courier" or "Arial"). 
+FontSize:  Optional. If not provided, pass null. Otherwise, pass the font size to use (e.g., 11 or 15 or 8, etc.) 
+TagName:  A unique identifier for this text object. 
+cx:   Optional. Pixel spacing control. 
+cy:   Optional. Pixel spacing control.
+
+
+Notes:
+
+The cx and cy parameters control the
+width (cx) and height (cy) of the text label.  They are also 
+available in the drawTextRelative and drawTextAbsolute functions, 
+but are not very useful unless you are using them in combination 
+with text flags, RELATIVETOTOP, RELATIVETOLEFT and RELATIVETOBOTTOM.  
+Both cx and cy require whole numbers.
+
+You can pass positive or negative numbers to these parameters.
+If you use positive whole numbers then the size is based on that
+number of pixels.
+    cx of 15 will be the width of the text label of 15 pixels.
+    cy of 15 will be the height of the text label of 15 pixels.
+If you use negative whole numbers then the size is relative to the
+specified font size.
+    cx of -15 will be the approxomate width of 15 characters of the 
+        specified font.
+    cy of -2 will be 2 times the height of the specified 
+        font.  -3 would be 3 times the height etc.
+
+
+The formula example below draws a table containing
+3 columns and 2 rows of text labels.
+
+
+Verwendete Indikatoren:
+
+
+*****************************************************************/
+
+var nFontCY = 0;
+var nFontCX = 0;
+var nColWidth	= 0;
+var nRowThickness = 1;
+var nFontSize   = 10;
+var sStr;
+var tStr;
+
+var diff1 =0;
+var diff2 =0;
+var midpoint1 =0;
+var realtimepivot =0;
+
+var tTradeIntControl  = "" ;
+var tTradeIntControl1 = "" ;
+var xTradeControlInt = 0;
+
+var t01MajControl   = null;
+var t01MajControl1  = null;
+var t01MinControl   = null;
+var t01MinControl1  = null;
+
+var t05MajControl   = null;
+var t05MajControl1  = null;
+var t05MinControl   = null;
+var t05MinControl1  = null;
+
+
+var t15MajControl   = null;
+var t15MajControl1  = null;
+var t15MinControl   = null;
+var t15MinControl1  = null;
+
+
+var t60MajControl   = null;
+var t60MajControl1  = null;
+var t60MinControl   = null;
+var t60MinControl1  = null;
+
+
+var tDMajControl   = null;
+var tDMajControl1  = null;
+var tDMinControl   = null;
+var tDMinControl1  = null;
+
+
+var tWMajControl   = null;
+var tWMajControl1  = null;
+var tWMinControl   = null;
+var tWMinControl1  = null;
+
+
+var tMMajControl   = null;
+var tMMajControl1  = null;
+var tMMinControl   = null;
+var tMMinControl1  = null;
+
+
+var xControlMaj   = 0;
+var xControlMin   = 0;
+var xTradeControl  = 0;
+
+var xTrendMaj   = 0;
+var xTrendMin   = 0;
+var xTrendTrade = 0;
+
+var sDiff = false;
+
+var tMajControl  = "" ;
+var tMajControl1 = "" ;
+
+var tMinControl  = "" ;
+var tMinControl1 = "" ;
+
+var tTradeControl  = "" ;
+var tTradeControl1 = "" ;
+
+
+var xInit   = false;
+var xMiddle = null;
+var xGap    = null;
+var xHiOp   = null;
+var xOpLo   = null;
+
+var xOpen   = null;
+var xHigh   = null;
+var xLow    = null;
+var xClose  = null;
+
+
+function preMain() {
+
+    setStudyTitle("TRO_SM_CONTROL_PMSM4");
+    setShowCursorLabel(false);
+    setShowTitleParameters(false);
+    setStudyMax( 2.5  );
+    setStudyMin( -.25  );
+
+    setDefaultBarFgColor(Color.black, 0);
+    setDefaultBarFgColor(Color.black, 1);
+    setDefaultBarFgColor(Color.black, 2);
+    setDefaultBarFgColor(Color.black, 3);
+    setDefaultBarFgColor(Color.black, 4);
+    setDefaultBarFgColor(Color.black, 5);
+    setDefaultBarFgColor(Color.black, 6);
+
+    setDefaultBarThickness(4, 0);
+    setDefaultBarThickness(4, 1);
+    setDefaultBarThickness(4, 2);
+    setDefaultBarThickness(4, 3);
+    setDefaultBarThickness(4, 4);
+    setDefaultBarThickness(4, 5);
+    setDefaultBarThickness(4, 6);
+
+    setPlotType(PLOTTYPE_SQUARE, 0);
+    setPlotType(PLOTTYPE_SQUARE, 1);
+    setPlotType(PLOTTYPE_SQUARE, 2);
+    setPlotType(PLOTTYPE_SQUARE, 3);
+    setPlotType(PLOTTYPE_SQUARE, 4);
+    setPlotType(PLOTTYPE_SQUARE, 5);
+    setPlotType(PLOTTYPE_SQUARE, 6);
+
+
+    var iPlot = new FunctionParameter("iPlot", FunctionParameter.BOOLEAN);
+ 	iPlot.setDefault( true );
+
+    
+    var iDebug = new FunctionParameter("iDebug", FunctionParameter.BOOLEAN);
+	iDebug.setDefault( false );
+
+    var iAlert = new FunctionParameter("iAlert", FunctionParameter.BOOLEAN);
+	iAlert.setDefault( false );
+
+
+    var iButtonX = new FunctionParameter("iButtonX", FunctionParameter.NUMBER);
+	iButtonX.setDefault( 1 ); 
+
+    var iButtonY = new FunctionParameter("iButtonY", FunctionParameter.NUMBER);
+	iButtonY.setDefault( 1 ); 
+
+
+    var iFontSize = new FunctionParameter("iFontSize", FunctionParameter.NUMBER);
+	iFontSize.setDefault( 10 ); 
+ 
+
+    var iDecimals = new FunctionParameter("iDecimals", FunctionParameter.NUMBER);
+	iDecimals.setDefault( 4 ); 
+        iDecimals.setName("Round to X decimals");
+
+
+
+
+    var iInterval1 = new FunctionParameter("iInterval1", FunctionParameter.STRING);
+	iInterval1.addOption("D");
+        iInterval1.addOption("W");
+        iInterval1.addOption("M");
+        iInterval1.addOption("T");
+	iInterval1.setDefault( "1" ); 
+        iInterval1.setName("Interval 1");
+
+    var iInterval2 = new FunctionParameter("iInterval2", FunctionParameter.STRING);
+	iInterval2.addOption("D");
+        iInterval2.addOption("W");
+        iInterval2.addOption("M");
+        iInterval2.addOption("T");
+	iInterval2.setDefault( "5" ); 
+        iInterval2.setName("Interval 2");
+
+    var iInterval3 = new FunctionParameter("iInterval3", FunctionParameter.STRING);
+	iInterval3.addOption("D");
+        iInterval3.addOption("W");
+        iInterval3.addOption("M");
+        iInterval3.addOption("T");
+	iInterval3.setDefault( "15" ); 
+        iInterval3.setName("Interval 3");
+
+    var iInterval4 = new FunctionParameter("iInterval4", FunctionParameter.STRING);
+	iInterval4.addOption("D");
+        iInterval4.addOption("W");
+        iInterval4.addOption("M");
+        iInterval4.addOption("T");
+        iInterval4.addOption("65");
+	iInterval4.setDefault( "60" ); 
+        iInterval4.setName("Interval 4");
+
+
+    var iInterval5 = new FunctionParameter("iInterval5", FunctionParameter.STRING);
+	iInterval5.addOption("D");
+        iInterval5.addOption("W");
+        iInterval5.addOption("M");
+        iInterval5.addOption("T");
+        iInterval5.addOption("240");
+	iInterval5.setDefault( "240" ); 
+        iInterval5.setName("Interval 5");
+
+    var iInterval6 = new FunctionParameter("iInterval6", FunctionParameter.STRING);
+	iInterval6.addOption("D");
+        iInterval6.addOption("W");
+        iInterval6.addOption("M");
+        iInterval6.addOption("T");
+	iInterval6.setDefault( "D" ); 
+        iInterval6.setName("Interval 6");
+
+    var iInterval7 = new FunctionParameter("iInterval7", FunctionParameter.STRING);
+	iInterval7.addOption("D");
+        iInterval7.addOption("W");
+        iInterval7.addOption("M");
+        iInterval7.addOption("T");
+	iInterval7.setDefault( "W" ); 
+        iInterval7.setName("Interval 7");
+
+
+/*
+    var iBuyColor01 = new FunctionParameter("iBuyColor01", FunctionParameter.COLOR);
+        iBuyColor01.setDefault( Color.green );
+
+    var iBuyColor02 = new FunctionParameter("iBuyColor02", FunctionParameter.COLOR);
+        iBuyColor02.setDefault( Color.green );
+
+    var iBuyColor03 = new FunctionParameter("iBuyColor03", FunctionParameter.COLOR);
+        iBuyColor03.setDefault( Color.green );
+
+    var iBuyColor04 = new FunctionParameter("iBuyColor04", FunctionParameter.COLOR);
+        iBuyColor04.setDefault( Color.green );
+
+
+    var iSellColor01 = new FunctionParameter("iSellColor01", FunctionParameter.COLOR);
+        iSellColor01.setDefault( Color.red );
+
+    var iSellColor02 = new FunctionParameter("iSellColor02", FunctionParameter.COLOR);
+        iSellColor02.setDefault( Color.red );
+
+    var iSellColor03 = new FunctionParameter("iSellColor03", FunctionParameter.COLOR);
+        iSellColor03.setDefault( Color.red);
+
+    var iSellColor04 = new FunctionParameter("iSellColor04", FunctionParameter.COLOR);
+        iSellColor04.setDefault( Color.red);
+*/
+
+
+    /***** Column Width is used here for the cx parameter *****/
+	var fp = new FunctionParameter("inputColWidth", FunctionParameter.NUMBER);
+	fp.setName("Column Width");
+	fp.setDefault(80);
+
+    /***** Row Thickness is used here for the cy parameter *****/
+	var fp = new FunctionParameter("inputRowThickness", FunctionParameter.NUMBER);
+	fp.setName("Row Thickness");
+	fp.setDefault(-1.2);
+
+	var fp = new FunctionParameter("inputFontSize", FunctionParameter.NUMBER);
+	fp.setName("Font Size");
+	fp.setLowerLimit(1);
+	fp.setDefault(11);
+
+    /*****
+        With drawTextPixel, X Start = the number of pixels from the left of 
+            the window.
+        With drawTextRelative or Absolute, X Start will be the bar index unless
+            the RELATIVETO### text flags are used.  In which case the values
+            will represent pixels.
+    *****/
+	var fp = new FunctionParameter("inputXstart", FunctionParameter.NUMBER);
+	fp.setName("X Start");
+	fp.setLowerLimit(1);
+	fp.setDefault(5);
+
+    /*****
+        With drawTextPixel, Y Start = the number of pixels from the top of 
+            the window.
+        With drawTextRelative or Absolute, Y Start will be relative to the 
+            price scale of the chart symbol unless the RELATIVETO### text 
+            flags are used.  In which case the values will represent pixels.
+    *****/
+	var fp = new FunctionParameter("inputYstart", FunctionParameter.NUMBER);
+	fp.setName("Y Start");
+	fp.setLowerLimit(1);
+	fp.setDefault(20);	
+	
+        
+    var fp4 = new FunctionParameter("roundlen", FunctionParameter.NUMBER);
+        fp4.setName("roundlen");
+        fp4.setLowerLimit(0);
+        fp4.setDefault(2);
+}
+
+var bEdit = true;
+
+
+function main(  iDebug , iAlert,  iPlot, iDecimals, 
+
+            iInterval1, iInterval2, iInterval3, iInterval4, iInterval5, iInterval6, iInterval7, 
+            
+                        
+            inputColWidth, inputRowThickness, inputFontSize, 
+            inputXstart, inputYstart, iFontSize, iButtonX, iButtonY) {
+            
+           
+   
+  // initialize upon first loading formula
+    if(getBarState() == BARSTATE_ALLBARS) {
+        drawTextPixel( iButtonX , iButtonY, " TRO_SM_CONTROL_PMSM4 @URL=EFS:editParameters", Color.white, 	Color.lime, 
+            Text.RELATIVETOLEFT|Text.RELATIVETOBOTTOM|Text.ONTOP|Text.BOLD|Text.BUTTON, 
+            "Comic Sans MS", 13, "UpExp"); 
+        vDate = new Date();
+        iInterval = getInterval();
+
+        vSymbol = getSymbol().toUpperCase();
+    
+        xSymbol = getSymbol().toUpperCase();
+
+        if( xSymbol == "EUR A0-FX" ) { iDecimals = 4 ;}
+
+        return null;
+    }
+         
+    
+    
+    
+    
+    //  prevents the formula from executing except at bar 0 and on new bar.
+	if(getCurrentBarIndex() != 0 && getBarState() != BARSTATE_NEWBAR) return;
+
+    // initialization routine to set values for global variables
+    if (bEdit == true) {
+        nColWidth = Math.round(inputColWidth);
+        nRowThickness = Math.round(inputRowThickness);
+        nFontSize = Math.round(inputFontSize);
+        
+        /***** Used for setting the space between x/y anchors for text
+            labels based on the font height *****/
+        if (nRowThickness < 0) {
+            nFontCY = getTextHeight("A", null, nFontSize)*(nRowThickness);
+        } else {
+            nFontCY = -nRowThickness;
+        }
+        
+        /***** This will get the maximum width for the specified string
+            based on the specified font type.  If the font type is not 
+            specified it uses a default Arial. *****/
+        if (nColWidth < 0) {
+            nFontCX = getTextWidth("Row ## Col ##", null, nFontSize);
+        } else {
+            nFontCX = nColWidth;
+        }
+        bEdit = false;
+    }
+
+    var nX = inputXstart;
+    var nY = inputYstart; 
+
+    
+    
+    //DISPLAY  COLUMN HEADINGS
+    
+    tStr= "Major"    ;
+    drawTextPixel(nX, nY, tStr, Color.blue, Color.lightgrey,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row0Col0", nColWidth, nRowThickness);
+ 
+ 
+        
+
+    tStr= "Minor";
+    drawTextPixel(nX+=nFontCX, nY, tStr, Color.blue, Color.lightgrey,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row0Col2", nColWidth, nRowThickness);
+        
+    
+ 
+
+    tStr= "Interval" ;
+    drawTextPixel(nX+=nFontCX, nY, tStr, Color.blue, Color.lightgrey,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row0Col4", nColWidth, nRowThickness);
+
+   
+    //Zeile2
+    
+    nX = inputXstart;
+    nY -= nFontCY;
+
+/*
+    if(xInit==false){
+
+	   
+
+         xInit=true;
+
+    } // xInit 
+      
+*/
+  
+ 
+// PROCESS ROW 1 COLUMN 1  
+         
+// if( iInterval1 != 0 && iInterval1 != "0" && iInterval1 != " " ) {
+
+           xFG1Color = Color.white; 
+	   xBg1Color = Color.cyan;   
+ 
+//         x1Open    =  open( 0 , inv(iInterval1)  ) ;
+         
+           x1High    =  high( 0 , inv(iInterval1) ) ;
+
+           x1Low     =  low(  0 , inv(iInterval1) ) ;
+
+           x1High1   =  high( -1 , inv(iInterval1) ) ;
+
+           x1Low1    =  low(  -1 , inv(iInterval1) ) ;
+
+//         x1Close   =  close( 0 , inv(iInterval1) ) ;
+
+           x1Mid     =   rnd( ((x1High  + x1Low  ) * .50)  ,iDecimals) ;
+           x1Mid1    =   rnd( ((x1High1 + x1Low1 ) * .50)  ,iDecimals) ;
+
+           z01DiffMin   = rnd( (close(0) -  x1Mid  )  ,iDecimals) ;
+           z01DiffMaj   = rnd( (close(0) -  x1Mid1 )  ,iDecimals) ;
+
+
+x01PIRMaj   = fPctInRange( close(0) , x1High1, x1Low1   ) ;
+
+x01PIRMin   = fPctInRange( close(0) , x1High, x1Low  ) ;
+
+
+        if( z01DiffMaj  > 0 ) {
+           x01FG1MajColor   =  Color.black;   
+	   x01Bg1MajColor   =  Color.lime;
+           t01MajControl = "BUYERS" ;
+           x01ControlMaj = 1;
+                  }  
+        else 
+        if( z01DiffMaj < 0  ) {
+           x01FG1MajColor   =  Color.black;  
+	   x01Bg1MajColor   =  Color.red;
+           t01MajControl = "SELLERS" ;
+           x01ControlMaj = -1;
+             }
+	    else {    
+           x01FG1MajColor   = Color.white;  
+	   x01Bg1MajColor   = Color.blue;
+           t01MajControl = "EVEN" 
+           x01ControlMaj = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( t01MajControl == t01MajControl1 ) { x01TrendMaj = x01TrendMaj + 1 ; }
+else { x01TrendMaj = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + t01MajControl, x01FG1MajColor, x01Bg1MajColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+t01MajControl1 = t01MajControl ;
+}
+
+
+           sStr     = t01MajControl + " " + x01PIRMaj + "%";
+        drawTextPixel(nX, nY, sStr, x01FG1MajColor, x01Bg1MajColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row1Col1", nColWidth, nRowThickness);
+
+
+
+
+// PROCESS ROW 1 COLUMN 2 
+ 
+
+        if( z01DiffMin  > 0 ) {
+           x01FG1MinColor   = Color.black;    
+	   x01Bg1MinColor   = Color.lime;
+           t01MinControl = "BUYERS" ;
+           x01ControlMin = 1;
+                  }  
+        else 
+        if( z01DiffMin < 0  ) {
+           x01FG1MinColor   = Color.black;  
+	   x01Bg1MinColor   = Color.red;
+           t01MinControl = "SELLERS" ;
+           x01ControlMin = -1;
+             }
+	    else {    
+           x01FG1MinColor   = Color.white;  
+	   x01Bg1MinColor   = Color.blue;
+           t01MinControl = "EVEN" 
+           x01ControlMin = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( t01MinControl == t01MinControl1 ) { x01TrendMin = x01TrendMin + 1 ; }
+else { x01TrendMin = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + t01MinControl, x01FG1MinColor, x01Bg1MinColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+t01MinControl1 = t01MinControl ;
+}
+
+           sStr     = t01MinControl + " " + x01PIRMin + "%";
+        drawTextPixel(nX+=nFontCX, nY, sStr, x01FG1MinColor, x01Bg1MinColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row1Col2", nColWidth, nRowThickness);
+
+// PROCESS ROW 1 COLUMN 3 
+
+
+if( x01Bg1MinColor == x01Bg1MajColor) { xbg01 = x01Bg1MinColor ; } 
+else { xbg01 =  Color.yellow  ; } 
+
+
+
+           sStr     = iInterval1 ;
+        drawTextPixel(nX+=nFontCX, nY, sStr,  Color.black, xbg01 ,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row1Col3", nColWidth, nRowThickness);
+
+ 
+
+// PROCESS ROW 2 COLUMN 1  
+ 
+
+nX = inputXstart;
+nY -= nFontCY; ;
+
+//         x05Open   =  open( 0 , inv(iInterval2)  ) ;
+         
+           x05High   =  high( 0 , inv(iInterval2) ) ;
+
+           x05Low    =  low(  0 , inv(iInterval2) ) ;
+
+         x05High1   =  high( -1 , inv(iInterval2) ) ;
+
+         x05Low1    =  low(  -1 , inv(iInterval2) ) ;
+
+//         x05Close  =  close( 0 , inv(iInterval2) ) ;
+
+         x05Mid     =   rnd( ((x05High  + x05Low  ) * .50)  ,iDecimals) ;
+         x05Mid1    =   rnd( ((x05High1 + x05Low1 ) * .50)  ,iDecimals) ;
+
+       z05DiffMin      = rnd( (close(0) -  x05Mid  )  ,iDecimals) ;
+       z05DiffMaj      = rnd( (close(0) -  x05Mid1 )  ,iDecimals) ;
+
+
+x05PIRMaj   = fPctInRange( close(0) , x05High1, x05Low1   ) ;
+
+x05PIRMin   = fPctInRange( close(0) , x05High, x05Low  ) ;
+
+
+        if( z05DiffMaj  > 0 ) {
+           x05FG1MajColor   = Color.black;    
+	   x05Bg1MajColor   = Color.lime;
+           t05MajControl = "BUYERS" ;
+           x05ControlMaj = 1;
+                  }  
+        else 
+        if( z05DiffMaj < 0  ) {
+           x05FG1MajColor   = Color.black;  
+	   x05Bg1MajColor   = Color.red;
+           t05MajControl = "SELLERS" ;
+           x05ControlMaj = -1;
+             }
+	    else {    
+           x05FG1MajColor   = Color.white;  
+	   x05Bg1MajColor   = Color.blue;
+           t05MajControl = "EVEN" 
+           x05ControlMaj = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( t05MajControl == t05MajControl1 ) { x05TrendMaj = x05TrendMaj + 1 ; }
+else { x05TrendMaj = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + t05MajControl, x05FG1MajColor, x05Bg1MajColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+t05MajControl1 = t05MajControl ;
+}
+
+
+           sStr     = t05MajControl + " " + x05PIRMaj + "%";
+        drawTextPixel(nX, nY, sStr, x05FG1MajColor, x05Bg1MajColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row05Col1", nColWidth, nRowThickness);
+
+// PROCESS ROW 2 COLUMN 2 
+ 
+
+        if( z05DiffMin  > 0 ) {
+           x05FG1MinColor   = Color.black;    
+	   x05Bg1MinColor   = Color.lime;
+           t05MinControl = "BUYERS" ;
+           x05ControlMin = 1;
+                  }  
+        else 
+        if( z05DiffMin < 0  ) {
+           x05FG1MinColor   = Color.black;  
+	   x05Bg1MinColor   = Color.red;
+           t05MinControl = "SELLERS" ;
+           x05ControlMin = -1;
+             }
+	    else {    
+           x05FG1MinColor   = Color.white;  
+	   x05Bg1MinColor   = Color.blue;
+           t05MinControl = "EVEN" 
+           x05ControlMin = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( t05MinControl == t05MinControl1 ) { x05TrendMin = x05TrendMin + 1 ; }
+else { x05TrendMin = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + t05MinControl, x05FG1MinColor, x05Bg1MinColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+t05MinControl1 = t05MinControl ;
+}
+
+
+           sStr     = t05MinControl + " " + x05PIRMin + "%";
+        drawTextPixel(nX+=nFontCX, nY, sStr, x05FG1MinColor, x05Bg1MinColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row05Col2", nColWidth, nRowThickness);
+
+// PROCESS ROW 2 COLUMN 3 
+
+ 
+
+if( x05Bg1MinColor == x05Bg1MajColor) { xbg05 = x05Bg1MinColor ; } 
+else { xbg05 =  Color.yellow  ; } 
+
+           sStr     = iInterval2 ;
+        drawTextPixel(nX+=nFontCX, nY, sStr,   Color.black, xbg05,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row05Col3", nColWidth, nRowThickness);
+
+ 
+
+
+// PROCESS ROW 3 COLUMN 1  
+ 
+
+nX = inputXstart;
+nY -= nFontCY; ;
+
+//         x15Open   =  open( 0 , inv(iInterval3)  ) ;
+         
+           x15High   =  high( 0 , inv(iInterval3) ) ;
+
+           x15Low    =  low(  0 , inv(iInterval3) ) ;
+
+         x15High1   =  high( -1 , inv(iInterval3) ) ;
+
+         x15Low1    =  low(  -1 , inv(iInterval3) ) ;
+
+//         x15Close  =  close( 0 , inv(iInterval3) ) ;
+
+         x15Mid     =   rnd( ((x15High  + x15Low  ) * .50)  ,iDecimals) ;
+         x15Mid1    =   rnd( ((x15High1 + x15Low1 ) * .50)  ,iDecimals) ;
+
+       z15DiffMin      = rnd( (close(0) -  x15Mid  )  ,iDecimals) ;
+       z15DiffMaj      = rnd( (close(0) -  x15Mid1 )  ,iDecimals) ;
+
+
+x15PIRMaj   = fPctInRange( close(0) , x15High1, x15Low1   ) ;
+
+x15PIRMin   = fPctInRange( close(0) , x15High, x15Low  ) ;
+
+        if( z15DiffMaj  > 0 ) {
+           x15FG1MajColor   = Color.black;    
+	   x15Bg1MajColor   = Color.lime;
+           t15MajControl = "BUYERS" ;
+           x15ControlMaj = 1;
+                  }  
+        else 
+        if( z15DiffMaj < 0  ) {
+           x15FG1MajColor   = Color.black;  
+	   x15Bg1MajColor   = Color.red;
+           t15MajControl = "SELLERS" ;
+           x15ControlMaj = -1;
+             }
+	    else {    
+           x15FG1MajColor   = Color.white;  
+	   x15Bg1MajColor   = Color.blue;
+           t15MajControl = "EVEN" 
+           x15ControlMaj = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( t15MajControl == t15MajControl1 ) { x15TrendMaj = x15TrendMaj + 1 ; }
+else { x15TrendMaj = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + t15MajControl, x15FG1MajColor, x15Bg1MajColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+t15MajControl1 = t15MajControl ;
+}
+
+           sStr     = t15MajControl + " " + x15PIRMaj + "%";
+        drawTextPixel(nX, nY, sStr, x15FG1MajColor, x15Bg1MajColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row15Col1", nColWidth, nRowThickness);
+
+// PROCESS ROW 3 COLUMN 2 
+ 
+
+        if( z15DiffMin  > 0 ) {
+           x15FG1MinColor   = Color.black;    
+	   x15Bg1MinColor   = Color.lime;
+           t15MinControl = "BUYERS" ;
+           x15ControlMin = 1;
+                  }  
+        else 
+        if( z15DiffMin < 0  ) {
+           x15FG1MinColor   = Color.black;  
+	   x15Bg1MinColor   = Color.red;
+           t15MinControl = "SELLERS" ;
+           x15ControlMin = -1;
+             }
+	    else {    
+           x15FG1MinColor   = Color.white;  
+	   x15Bg1MinColor   = Color.blue;
+           t15MinControl = "EVEN" 
+           x15ControlMin = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( t15MinControl == t15MinControl1 ) { x15TrendMin = x15TrendMin + 1 ; }
+else { x15TrendMin = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + t15MinControl, x15FG1MinColor, x15Bg1MinColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+t15MinControl1 = t15MinControl ;
+}
+           sStr     = t15MinControl + " " + x15PIRMin + "%";
+        drawTextPixel(nX+=nFontCX, nY, sStr, x15FG1MinColor, x15Bg1MinColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row15Col2", nColWidth, nRowThickness);
+
+// PROCESS ROW 3 COLUMN 3 
+
+
+if( x15Bg1MinColor == x15Bg1MajColor) { xbg15 = x15Bg1MinColor ; } 
+else { xbg15 =  Color.yellow  ; } 
+
+           sStr     = iInterval3 ;
+        drawTextPixel(nX+=nFontCX, nY, sStr,  Color.black, xbg15 ,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row15Col3", nColWidth, nRowThickness);
+
+// PROCESS ROW 4 COLUMN 1  
+
+nX = inputXstart;
+nY -= nFontCY; ;
+
+//         x60Open   =  open( 0 , inv(iInterval4)  ) ;
+         
+           x60High   =  high( 0 , inv(iInterval4) ) ;
+
+           x60Low    =  low(  0 , inv(iInterval4) ) ;
+
+         x60High1   =  high( -1 , inv(iInterval4) ) ;
+
+         x60Low1    =  low(  -1 , inv(iInterval4) ) ;
+
+//         x60Close  =  close( 0 , inv(iInterval4) ) ;
+
+         x60Mid     =   rnd( ((x60High  + x60Low  ) * .50)  ,iDecimals) ;
+         x60Mid1    =   rnd( ((x60High1 + x60Low1 ) * .50)  ,iDecimals) ;
+
+       z60DiffMin      = rnd( (close(0) -  x60Mid  )  ,iDecimals) ;
+       z60DiffMaj      = rnd( (close(0) -  x60Mid1 )  ,iDecimals) ;
+
+
+x60PIRMaj   = fPctInRange( close(0) , x60High1, x60Low1   ) ;
+
+x60PIRMin   = fPctInRange( close(0) , x60High, x60Low  ) ;
+
+
+        if( z60DiffMaj  > 0 ) {
+           x60FG1MajColor   = Color.black;    
+	   x60Bg1MajColor   = Color.lime;
+           t60MajControl = "BUYERS" ;
+           x60ControlMaj = 1;
+                  }  
+        else 
+        if( z60DiffMaj < 0  ) {
+           x60FG1MajColor   = Color.black;  
+	   x60Bg1MajColor   = Color.red;
+           t60MajControl = "SELLERS" ;
+           x60ControlMaj = -1;
+             }
+	    else {    
+           x60FG1MajColor   = Color.white;  
+	   x60Bg1MajColor   = Color.blue;
+           t60MajControl = "EVEN" 
+           x60ControlMaj = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( t60MajControl == t60MajControl1 ) { x60TrendMaj = x60TrendMaj + 1 ; }
+else { x60TrendMaj = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + t60MajControl, x60FG1MajColor, x60Bg1MajColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+t60MajControl1 = t60MajControl ;
+}
+
+           sStr     = t60MajControl + " " + x60PIRMaj + "%";
+        drawTextPixel(nX, nY, sStr, x60FG1MajColor, x60Bg1MajColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row60Col1", nColWidth, nRowThickness);
+
+// PROCESS ROW 4 COLUMN 2 
+
+        if( z60DiffMin  > 0 ) {
+           x60FG1MinColor   = Color.black;    
+	   x60Bg1MinColor   = Color.lime;
+           t60MinControl = "BUYERS" ;
+           x60ControlMin = 1;
+                  }  
+        else 
+        if( z60DiffMin < 0  ) {
+           x60FG1MinColor   = Color.black;  
+	   x60Bg1MinColor   = Color.red;
+           t60MinControl = "SELLERS" ;
+           x60ControlMin = -1;
+             }
+	    else {    
+           x60FG1MinColor   = Color.white;  
+	   x60Bg1MinColor   = Color.blue;
+           t60MinControl = "EVEN" 
+           x60ControlMin = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( t60MinControl == t60MinControl1 ) { x60TrendMin = x60TrendMin + 1 ; }
+else { x60TrendMin = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + t60MinControl, x60FG1MinColor, x60Bg1MinColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+t60MinControl1 = t60MinControl ;
+}
+           sStr     = t60MinControl + " " + x60PIRMin + "%";
+        drawTextPixel(nX+=nFontCX, nY, sStr, x60FG1MinColor, x60Bg1MinColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row60Col2", nColWidth, nRowThickness);
+
+// PROCESS ROW 4 COLUMN 3 
+
+ 
+
+if( x60Bg1MinColor == x60Bg1MajColor) { xbg60 = x60Bg1MinColor ; } 
+else { xbg60 =  Color.yellow  ; } 
+
+           sStr     = iInterval4 ;
+        drawTextPixel(nX+=nFontCX, nY, sStr,  Color.black, xbg60,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "Row60Col3", nColWidth, nRowThickness);
+
+// PROCESS ROW 5 COLUMN 1  
+ 
+nX = inputXstart;
+nY -= nFontCY; ;
+
+//         xDOpen   =  open( 0 , inv(iInterval5)  ) ;
+         
+           xDHigh   =  high( 0 , inv(iInterval5) ) ;
+
+           xDLow    =  low(  0 , inv(iInterval5) ) ;
+
+         xDHigh1   =  high( -1 , inv(iInterval5) ) ;
+
+         xDLow1    =  low(  -1 , inv(iInterval5) ) ;
+
+//         xDClose  =  close( 0 , inv(iInterval5) ) ;
+
+         xDMid     =   rnd( ((xDHigh  + xDLow  ) * .50)  ,iDecimals) ;
+         xDMid1    =   rnd( ((xDHigh1 + xDLow1 ) * .50)  ,iDecimals) ;
+
+       zDDiffMin      = rnd( (close(0) -  xDMid  )  ,iDecimals) ;
+       zDDiffMaj      = rnd( (close(0) -  xDMid1 )  ,iDecimals) ;
+
+
+xDPIRMaj   = fPctInRange( close(0) , xDHigh1, xDLow1   ) ;
+
+xDPIRMin   = fPctInRange( close(0) , xDHigh, xDLow  ) ;
+
+        if( zDDiffMaj  > 0 ) {
+           xDFG1MajColor   = Color.black;    
+	   xDBg1MajColor   = Color.lime;
+           tDMajControl = "BUYERS" ;
+           xDControlMaj = 1;
+                  }  
+        else 
+        if( zDDiffMaj < 0  ) {
+           xDFG1MajColor   = Color.black;  
+	   xDBg1MajColor   = Color.red;
+           tDMajControl = "SELLERS" ;
+           xDControlMaj = -1;
+             }
+	    else {    
+           xDFG1MajColor   = Color.white;  
+	   xDBg1MajColor   = Color.blue;
+           tDMajControl = "EVEN" 
+           xDControlMaj = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( tDMajControl == tDMajControl1 ) { xDTrendMaj = xDTrendMaj + 1 ; }
+else { xDTrendMaj = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + tDMajControl, xDFG1MajColor, xDBg1MajColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+tDMajControl1 = tDMajControl ;
+}
+
+           sStr     = tDMajControl + " " + xDPIRMaj + "%";
+        drawTextPixel(nX, nY, sStr, xDFG1MajColor, xDBg1MajColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "RowDCol1", nColWidth, nRowThickness);
+
+// PROCESS ROW 5 COLUMN 2 
+ 
+        if( zDDiffMin  > 0 ) {
+           xDFG1MinColor   = Color.black;    
+	   xDBg1MinColor   = Color.lime;
+           tDMinControl = "BUYERS" ;
+           xDControlMin = 1;
+                  }  
+        else 
+        if( zDDiffMin < 0  ) {
+           xDFG1MinColor   = Color.black;  
+	   xDBg1MinColor   = Color.red;
+           tDMinControl = "SELLERS" ;
+           xDControlMin = -1;
+             }
+	    else {    
+           xDFG1MinColor   = Color.white;  
+	   xDBg1MinColor   = Color.blue;
+           tDMinControl = "EVEN" 
+           xDControlMin = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( tDMinControl == tDMinControl1 ) { xDTrendMin = xDTrendMin + 1 ; }
+else { xDTrendMin = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + tDMinControl, xDFG1MinColor, xDBg1MinColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+tDMinControl1 = tDMinControl ;
+}
+          sStr     = tDMinControl + " " + xDPIRMin + "%";
+        drawTextPixel(nX+=nFontCX, nY, sStr, xDFG1MinColor, xDBg1MinColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "RowDCol2", nColWidth, nRowThickness);
+
+// PROCESS ROW 5 COLUMN 3 
+
+
+if( xDBg1MinColor == xDBg1MajColor) { xbgD = xDBg1MinColor ; } 
+else { xbgD =  Color.yellow  ; } 
+
+
+           sStr     = iInterval5 ;
+        drawTextPixel(nX+=nFontCX, nY, sStr,  Color.black, xbgD ,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "RowDCol3", nColWidth, nRowThickness);
+
+// PROCESS ROW 6 COLUMN 1  
+
+nX = inputXstart;
+nY -= nFontCY; ;
+
+//         xWOpen   =  open( 0 , inv(iInterval6)  ) ;
+         
+           xWHigh   =  high( 0 , inv(iInterval6) ) ;
+
+           xWLow    =  low(  0 , inv(iInterval6) ) ;
+
+         xWHigh1   =  high( -1 , inv(iInterval6) ) ;
+
+         xWLow1    =  low(  -1 , inv(iInterval6) ) ;
+
+//         xWClose  =  close( 0 , inv(iInterval6) ) ;
+
+         xWMid     =   rnd( ((xWHigh  + xWLow  ) * .50)  ,iDecimals) ;
+         xWMid1    =   rnd( ((xWHigh1 + xWLow1 ) * .50)  ,iDecimals) ;
+
+       zWDiffMin      = rnd( (close(0) -  xWMid  )  ,iDecimals) ;
+       zWDiffMaj      = rnd( (close(0) -  xWMid1 )  ,iDecimals) ;
+
+xWPIRMaj   = fPctInRange( close(0) , xWHigh1, xWLow1   ) ;
+
+xWPIRMin   = fPctInRange( close(0) , xWHigh, xWLow  ) ;
+
+        if( zWDiffMaj  > 0 ) {
+           xWFG1MajColor   = Color.black;    
+	   xWBg1MajColor   = Color.lime;
+           tWMajControl = "BUYERS" ;
+           xWControlMaj = 1;
+                  }  
+        else 
+        if( zWDiffMaj < 0  ) {
+           xWFG1MajColor   = Color.black;  
+	   xWBg1MajColor   = Color.red;
+           tWMajControl = "SELLERS" ;
+           xWControlMaj = -1;
+             }
+	    else {    
+           xWFG1MajColor   = Color.white;  
+	   xWBg1MajColor   = Color.blue;
+           tWMajControl = "EVEN" 
+           xWControlMaj = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( tWMajControl == tWMajControl1 ) { xWTrendMaj = xWTrendMaj + 1 ; }
+else { xWTrendMaj = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + tWMajControl, xWFG1MajColor, xWBg1MajColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+tWMajControl1 = tWMajControl ;
+}
+           sStr     = tWMajControl + " " + xWPIRMaj + "%";
+        drawTextPixel(nX, nY, sStr, xWFG1MajColor, xWBg1MajColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "RowWCol1", nColWidth, nRowThickness);
+
+// PROCESS ROW 6 COLUMN 2 
+ 
+        if( zWDiffMin  > 0 ) {
+           xWFG1MinColor   = Color.black;    
+	   xWBg1MinColor   = Color.lime;
+           tWMinControl = "BUYERS" ;
+           xWControlMin = 1;
+                  }  
+        else 
+        if( zWDiffMin < 0  ) {
+           xWFG1MinColor   = Color.black;  
+	   xWBg1MinColor   = Color.red;
+           tWMinControl = "SELLERS" ;
+           xWControlMin = -1;
+             }
+	    else {    
+           xWFG1MinColor   = Color.white;  
+	   xWBg1MinColor   = Color.blue;
+           tWMinControl = "EVEN" 
+           xWControlMin = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( tWMinControl == tWMinControl1 ) { xWTrendMin = xWTrendMin + 1 ; }
+else { xWTrendMin = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + tWMinControl, xWFG1MinColor, xWBg1MinColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+tWMinControl1 = tWMinControl ;
+}
+           sStr     = tWMinControl + " " + xWPIRMin + "%";
+        drawTextPixel(nX+=nFontCX, nY, sStr, xWFG1MinColor, xWBg1MinColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "RowWCol2", nColWidth, nRowThickness);
+
+// PROCESS ROW 6 COLUMN 3 
+
+
+if( xWBg1MinColor == xWBg1MajColor) { xbgW = xWBg1MinColor ; } 
+else { xbgW =  Color.yellow  ; } 
+
+           sStr     = iInterval6 ;
+        drawTextPixel(nX+=nFontCX, nY, sStr, Color.black, xbgW,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "RowWCol3", nColWidth, nRowThickness);
+
+// PROCESS ROW 7 COLUMN 1  
+
+nX = inputXstart;
+nY -= nFontCY; ;
+
+//         xMOpen   =  open( 0 , inv(iInterval7)  ) ;
+         
+           xMHigh   =  high( 0 , inv(iInterval7) ) ;
+
+           xMLow    =  low(  0 , inv(iInterval7) ) ;
+
+         xMHigh1   =  high( -1 , inv(iInterval7) ) ;
+
+         xMLow1    =  low(  -1 , inv(iInterval7) ) ;
+
+//         xMClose  =  close( 0 , inv(iInterval7) ) ;
+
+         xMMid     =   rnd( ((xMHigh  + xMLow  ) * .50)  ,iDecimals) ;
+         xMMid1    =   rnd( ((xMHigh1 + xMLow1 ) * .50)  ,iDecimals) ;
+
+       zMDiffMin      = rnd( (close(0) -  xMMid  )  ,iDecimals) ;
+       zMDiffMaj      = rnd( (close(0) -  xMMid1 )  ,iDecimals) ;
+
+
+xMPIRMaj   = fPctInRange( close(0) , xMHigh1, xMLow1   ) ;
+
+xMPIRMin   = fPctInRange( close(0) , xMHigh, xMLow  ) ;
+
+        if( zMDiffMaj  > 0 ) {
+           xMFG1MajColor   = Color.black;    
+	   xMBg1MajColor   = Color.lime;
+           tMMajControl = "BUYERS" ;
+           xMControlMaj = 1;
+                  }  
+        else 
+        if( zMDiffMaj < 0  ) {
+           xMFG1MajColor   = Color.black;  
+	   xMBg1MajColor   = Color.red;
+           tMMajControl = "SELLERS" ;
+           xMControlMaj = -1;
+             }
+	    else {    
+           xMFG1MajColor   = Color.white;  
+	   xMBg1MajColor   = Color.blue;
+           tMMajControl = "EVEN" 
+           xMControlMaj = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( tMMajControl == tMMajControl1 ) { xMTrendMaj = xMTrendMaj + 1 ; }
+else { xMTrendMaj = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + tMMajControl, xMFG1MajColor, xMBg1MajColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+tMMajControl1 = tMMajControl ;
+}
+
+           sStr     = tMMajControl + " " + xMPIRMaj + "%";
+        drawTextPixel(nX, nY, sStr, xMFG1MajColor, xMBg1MajColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "RowMCol1", nColWidth, nRowThickness);
+
+// PROCESS ROW 7 COLUMN 2 
+ 
+
+        if( zMDiffMin  > 0 ) {
+           xMFG1MinColor   = Color.black;    
+	   xMBg1MinColor   = Color.lime;
+           tMMinControl = "BUYERS" ;
+           xMControlMin = 1;
+                  }  
+        else 
+        if( zMDiffMin < 0  ) {
+           xMFG1MinColor   = Color.black;  
+	   xMBg1MinColor   = Color.red;
+           tMMinControl = "SELLERS" ;
+           xMControlMin = -1;
+             }
+	    else {    
+           xMFG1MinColor   = Color.white;  
+	   xMBg1MinColor   = Color.blue;
+           tMMinControl = "EVEN" 
+           xMControlMin = 0; 
+          }
+
+if(getBarState()==BARSTATE_NEWBAR) {
+
+if( tMMinControl == tMMinControl1 ) { xMTrendMin = xMTrendMin + 1 ; }
+else { xMTrendMin = 1 ; 
+      if( iAlert == true ) {
+        Alert.addToList(getSymbol(), " NOW IN CONTROL " + tMMinControl, xMFG1MinColor, xMBg1MinColor );
+        Alert.playSound("ding.wav");
+      }
+}
+
+tMMinControl1 = tMMinControl ;
+}
+           sStr     = tMMinControl + " " + xMPIRMin + "%";
+        drawTextPixel(nX+=nFontCX, nY, sStr, xMFG1MinColor, xMBg1MinColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "RowMCol2", nColWidth, nRowThickness);
+
+// PROCESS ROW 7 COLUMN 3 
+
+
+if( xMBg1MinColor == xMBg1MajColor) { xbgM = xMBg1MinColor ; } 
+else { xbgM =  Color.yellow  ; } 
+
+           sStr     = iInterval7 ;
+        drawTextPixel(nX+=nFontCX, nY, sStr, Color.black, xbgM ,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "RowMCol3", nColWidth, nRowThickness);
+
+// DEBUG 
+
+if(iDebug == true ) {
+
+ 
+  xSymbol = getSymbol().toUpperCase();
+  
+  debugPrint( "  "  + "\n" );
+
+  debugPrint( "getCurrentBarCount() : " + getCurrentBarCount() +  "\n" );  
+  debugPrint( "Symbol          : " + xSymbol  + "\n" );
+
+  debugPrint( "-TRO_SM_CONTROL_PMSM4-: "  + "\n" );
+}
+ 
+ 
+
+if( iPlot == true) {
+ 
+
+setBarFgColor(xbg01 , 0);
+setBarFgColor(xbg05 , 1);
+setBarFgColor(xbg15 , 2);
+setBarFgColor(xbg60 , 3);
+setBarFgColor(xbgD  , 4);
+setBarFgColor(xbgW  , 5);
+setBarFgColor(xbgM  , 6);
+
+/*
+
+if( x01Bg1MinColor == x01Bg1MajColor) { setBarFgColor(x01Bg1MinColor , 0); } 
+else { setBarFgColor(Color.yellow , 0); } 
+
+if( x05Bg1MinColor == x05Bg1MajColor) { setBarFgColor(x05Bg1MinColor , 1); } 
+else { setBarFgColor(Color.yellow , 1); } 
+
+if( x15Bg1MinColor == x15Bg1MajColor) { setBarFgColor(x15Bg1MinColor , 2); } 
+else { setBarFgColor(Color.yellow , 2); } 
+
+if( x60Bg1MinColor == x60Bg1MajColor) { setBarFgColor(x60Bg1MinColor , 3); } 
+else { setBarFgColor(Color.yellow , 3); } 
+
+if( xDBg1MinColor == xDBg1MajColor) { setBarFgColor(xDBg1MinColor , 4); } 
+else { setBarFgColor(Color.yellow , 4); } 
+
+if( xWBg1MinColor == xWBg1MajColor) { setBarFgColor(xWBg1MinColor , 5); } 
+else { setBarFgColor(Color.yellow , 5); } 
+
+if( xMBg1MinColor == xMBg1MajColor) { setBarFgColor(xMBg1MinColor , 6); } 
+else { setBarFgColor(Color.yellow , 6); } 
+*/
+
+//     return new Array( 3.5, 3, 2.5, 2, 1.5, 1, .5  ) ; // MAIN
+
+     return new Array( 2, 1.75, 1.5, 1.25, 1, .75, .5  ) ; // MAIN
+}
+
+
+else { return ; }
+}
+  
+
+//==rnd will round to N digits.
+function rnd(value, N) {
+    var n;
+    var mult=1;
+    for(n=0;n<N;n++) mult*=10;
+    value*=mult;
+    return Math.round( value,N)/mult;
+}
+
+function editParameters() {
+    askForInput("TRO_SM_CONTROL_PMSM4");
+    return;
+}
+
+
+function fPctInRange( uPrice, uHigh, uLow ) {
+
+ 
+    oPct = (uPrice - uLow) / (uHigh -uLow) * 100;
+
+    if ( oPct > 100 ) { oPct = 100; }
+    else { if (oPct < 0 ) { oPct = 0; } }
+
+    oPct = (Math.round(oPct * 100)) * .01  ; //Rounds to 2 decimal precision
+
+//    oPct = ( oPct - 50 ) * 2 ; // scale -100 to + 100
+
+return ( oPct.toFixed(0) ) ; 
+}

@@ -1,0 +1,437 @@
+/****
+
+TRO_DDF 4:39 AM 8/29/2006
+
+Modifying Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne, 
+    
+
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+please include this and/or any other comment blocks and a 
+description of any changes you make.
+
+
+ATTN ESIGNAL: I DID NOT POST THIS CODE ON YOUR FORUM
+              I AM NOT RESPONSIBLE FOR ANY ESIGNAL FORUM RULE VIOLATIONS.
+
+http://www.clayburg.com/TradeStationWorldLV/TradeStationWorld_Las_Vegas_files/frame.htm#slide0001.htm
+
+
+****/
+
+
+
+/********************************************************************
+Title:		Directional Day Filter for eSignal 7.x
+By:         Chris D. Kryza (Divergence Software, Inc.)
+Email:      ckryza@verizon.net, ckryza@sr-analyst.com
+Web:		http://www.sr-analyst.com
+Incept:     06/29/2005
+Version:    1.0.0
+
+Copyright 2005, All Rights Reserved. Code may be modified for 
+personal use only. No portion of this code can be sold or
+otherwise redistributed without the express written consent of
+the author, Divergence Software, Inc.
+
+ckryza@sr-analyst.com wrote:
+
+Hi Avery:
+
+Sorry for the delay... I'm out of town and on vacation until 9/5 and Internet access where I am staying is very spotty. No problem at all regarding the posting of a modified version and thanks for asking.
+
+Chris
+=====================================================================
+Fix History:
+
+06/29/2005 -   Initial Release
+1.0.0
+
+=====================================================================
+Project Description:   
+
+Plots the Directional Day Filter as per the slide show available on the 
+www.clayburg.com website. The URL to the slide show is:
+
+http://www.clayburg.com/TradeStationWorldLV/TradeStationWorld_Las_Vegas_files/frame.htm#slide0001.htm
+
+The general idea is that it plots a line at the average price of the first
+5-minutes of trading (DDF Line). Then after 1-hour of trading it plots a vertical line
+that encompasses the highest-high and lowest-low traded in the first hour.
+You then eyeball the resulting grid. If the majority of bars within the first
+1-hour are above the DDF Line then the likely direction for the day will be
+up... if the majority of bars within the first hour of trading are below the
+DDF line then the likely direction for the day will be down.
+
+The script allows you to adjust several parameters:
+
+Market Open Time:	 	Defaults to 09:30. Set the market open time that is appropriate for the
+						security you are viewing. Times must be entered as HH:MM and must be
+						entered in military time (e.g, 1:00pm would be 13:00)
+						
+DDF Increment:			How many minutes past the Market Open should the DDF line be calculated? The
+						default value is 5 (e.g., calculate average of first 5-min bar).
+						
+Time Line Increment:	How many minutes past the Market Open should the Time line be calculated? The
+						default value is 60 (e.g., find highest-high and lowest-low after the first
+						60-minutes of trading.
+						
+You can also set the various colors and line thicknesses via the menu.																		
+
+
+Dislaimer: For educational purposes only! Obviously, no guarantees 
+whatsoever and use at your own risk.
+
+**********************************************************************/
+
+
+//External Variables
+var grID                = 0;
+var nBarCounter			= 0;
+var nStudy1				= null;
+var nStudy2				= null;
+var nStudy3				= null;
+var nDDFInv				= null;
+var nTimeInv			= null;
+var nMktTime			= 0;
+var nDDFTime			= 0;
+var nTimeTime			= 0;
+var nDDFLine			= null;
+var nTimeLine			= null;
+var aFPArray			= new Array();
+var bInitialized		= false;
+
+
+
+//== PreMain function required by eSignal to set things up
+function preMain() {
+var x;
+
+    setPriceStudy(true);
+    setStudyTitle("Directional Day Filter");
+
+    setCursorLabelName("Mid-5", 0);
+    setCursorLabelName("High-5", 1);
+    setCursorLabelName("Low-5", 2);
+    setCursorLabelName("Close-60", 3)
+    setCursorLabelName("High-60", 4);
+    setCursorLabelName("Low-60", 5);
+
+    setDefaultBarFgColor( Color.blue, 0 );
+    setDefaultBarFgColor(Color.navy,1);
+    setDefaultBarFgColor(Color.navy,2);
+    setDefaultBarFgColor(Color.purple,3);
+    setDefaultBarFgColor(Color.purple,4);
+    setDefaultBarFgColor(Color.purple,5);
+
+    setDefaultBarThickness(2,0);
+    setDefaultBarThickness(2,1);
+    setDefaultBarThickness(2,2);
+    setDefaultBarThickness(2,3);
+    setDefaultBarThickness(2,4);
+    setDefaultBarThickness(2,5);
+
+    setPlotType(PLOTTYPE_FLATLINES,0);  
+    setPlotType(PLOTTYPE_FLATLINES,1);
+    setPlotType(PLOTTYPE_FLATLINES,2);
+    setPlotType(PLOTTYPE_FLATLINES,3);
+    setPlotType(PLOTTYPE_FLATLINES,4);
+    setPlotType(PLOTTYPE_FLATLINES,5);
+
+    setShowTitleParameters( false );
+
+	//unrem this if you don't want the labels in cursor window
+    //setShowCursorLabel(false);
+    
+    //unrem this if you don't want the study to update on every tick
+    //setComputeOnClose();
+    grID = 0;
+    
+    //initialize formula parameters
+	x=0; 
+	aFPArray[x] = new FunctionParameter( "fMarketOpen", FunctionParameter.STRING);
+	with( aFPArray[x] ) {
+		setName( "Market Open Time" );
+		setDefault( "06:30" );
+	}      
+	x++;
+	aFPArray[x] = new FunctionParameter( "fDDFLen", FunctionParameter.NUMBER);
+	with( aFPArray[x] ) {
+		setName( "DDF Increment (mins)" );
+		setDefault( 5 );
+	}      
+	x++;
+	aFPArray[x] = new FunctionParameter( "fTimeLen", FunctionParameter.NUMBER);
+	with( aFPArray[x] ) {
+		setName( "Time Line Increment (mins)" );
+		setDefault( 60 );
+	}      
+	x++;
+	aFPArray[x] = new FunctionParameter( "fDDFColor", FunctionParameter.COLOR);
+	with( aFPArray[x] ) {
+		setName( "DDF Line Color" );
+		setDefault( Color.blue );
+	}      
+	x++;
+	aFPArray[x] = new FunctionParameter( "fDDFThick", FunctionParameter.NUMBER);
+	with( aFPArray[x] ) {
+		setName( "DDF Line Thickness" );
+		setLowerLimit( 1 );
+		setUpperLimit( 10 );
+		setDefault( 2 );
+	}      
+	x++;
+	aFPArray[x] = new FunctionParameter( "fTimeColor", FunctionParameter.COLOR);
+	with( aFPArray[x] ) {
+		setName( "Time Line Color" );
+		setDefault( Color.purple );
+	}      
+	x++;
+	aFPArray[x] = new FunctionParameter( "fTimeThick", FunctionParameter.NUMBER);
+	with( aFPArray[x] ) {
+		setName( "Time Line Thickness" );
+		setLowerLimit( 1 );
+		setUpperLimit( 10 );
+		setDefault( 3 );
+	}      
+	
+
+}
+
+
+var xHigh      = null;
+var xLow       = null;
+var xClose60   = null;
+
+var xHigh60    = null;
+var xLow60     = null;
+
+var x1a = null;     
+var x1b = null;        
+var y1a = null;         
+var y1b = null;         
+var x1aTest = 0 ; 
+
+//== Main processing function
+function main( fMarketOpen, fDDFLen, fTimeLen, fDDFColor, fDDFThick, fTimeColor, fTimeThick ) {
+var x;
+	
+	
+	//script is initializing
+    if ( getBarState() == BARSTATE_ALLBARS ) {
+        return null;
+    }
+
+	if ( bInitialized == false ) {
+	
+		nDDFInv 	= Math.round( fDDFLen );
+		nTimeInv 	= Math.round( fTimeLen );
+		
+		nStudy1		= custDataHigh( inv( nDDFInv ) );
+		nStudy2		= custDataLow( inv( nDDFInv ) );
+		nStudy3		= custDataTime( inv( nDDFInv ) );
+		
+		nMktTime	= TimeToMinutes( fMarketOpen );
+		nDDFTime	= TimeToMinutes( fMarketOpen ) + nDDFInv;
+		nTimeTime	= TimeToMinutes( fMarketOpen ) + nTimeInv;
+		
+		if ( nDDFTime>=1440 ) nDDFTime -= 1440;
+		if ( nTimeTime>=1440 ) nTimeTime -=1440;
+		
+		setDefaultBarFgColor( fDDFColor, 0 );
+		setDefaultBarThickness( Math.round( fDDFThick ), 0 );
+
+		bInitialized = true;
+	}
+
+	//called on each new bar
+	if ( getBarState() == BARSTATE_NEWBAR ) {
+	
+		/*
+		//at start of new day
+		if ( getDay(0) != getDay(-1) ) {
+			nDDFLine  = null;
+			nTimeLine = null;
+                        xClose60  = null; 
+                        xHigh     = null; 
+                        xLow      = null; 
+                        x1aTest   = 0 ;
+		}
+		*/
+		
+		
+		nTime = getBarTime(0);
+		if ( nTime==nMktTime ) {
+                        xClose60  = null; 
+			nDDFLine  = null;
+			nTimeLine = null;
+                        x1aTest   = 0 ;
+		}
+
+		x1aTest = x1aTest + 1 ; 
+
+		if ( getBarTime(0) == nDDFTime  ) {	
+	
+			nTmp = getHiLo( nMktTime, nDDFTime );  // GET HIGH LOW FOR PERIOD
+			if ( nTmp != null ) {
+                           xHigh    = nTmp[0];
+                           xLow     = nTmp[1];
+                        }
+		}
+
+		if ( getBarTime(0) >= nDDFTime && nDDFLine==null ) {
+		
+			nDDFLine = getAverage( nMktTime );
+			
+		}
+		
+
+                if ( getBarTime(0) == nTimeTime  ) { 
+                        xClose60 = close(0) ; 
+	        	nTmp = getHiLo( nMktTime, nTimeTime );
+                        xHigh60  = nTmp[0];
+                        xLow60   = nTmp[1];
+                }	
+ 
+
+		if ( getBarTime(0) >= nTimeTime && nTimeLine==null ) {
+			
+			nTmp = getHiLo( nMktTime, nTimeTime );
+			if ( nTmp != null ) {
+				drawLineRelative( 0, nTmp[0], 0, nTmp[1], PS_SOLID, Math.round( fTimeThick ), fTimeColor, nBarCounter );
+				nTimeLine = nTmp;
+
+
+			}
+		
+		}
+		
+		
+		nBarCounter++;
+		
+	}
+	
+if( close(0) > xClose60 && close(0) > nDDFLine ) { setBarFgColor( Color.green, 3 ); }
+else if( close(0) < xClose60 && close(0) < nDDFLine ) { setBarFgColor( Color.red, 3 ); }
+else { setBarFgColor( Color.yellow, 3 ); }
+
+
+
+if( close(0) > xHigh60  ) { setBarFgColor( Color.green, 4 ); }
+else if( close(0) < xLow60   ) { setBarFgColor( Color.red, 5 ); }
+else { 
+ setBarFgColor( Color.purple, 4 );
+ setBarFgColor( Color.purple, 5 ); }
+
+
+                     //   x1b = getCurrentBarIndex() ;
+                     //   x1Plot = x1b - x1aTest + 1 ;
+                     //   setBarBgColor( 16777120 , 0 , xClose60, xHigh60    );
+                     //   setBarBgColor( 16752895 , 1 , xLow60 , xClose60 );
+
+
+	return new Array( nDDFLine , xHigh , xLow, xClose60, xHigh60, xLow60 );
+
+}
+
+
+/*************************************************
+             SUPPORT FUNCTIONS                    
+**************************************************/    
+
+function custDataHigh( sInv ) {
+	return( efsInternal( "_custDataHigh", sInv ) );
+}
+
+function _custDataHigh( sInv ) {
+	return( high(0) );
+}
+
+function custDataLow( sInv ) {
+	return( efsInternal( "_custDataLow", sInv ) );
+}
+
+function _custDataLow( sInv ) {
+	return( low(0) );
+}
+
+function custDataTime( sInv ) {
+	return( efsInternal( "_custDataTime", sInv ) );
+}
+
+function _custDataTime( sInv ) {
+	return( (hour(0)*60)+minute(0) );
+	
+}
+
+function getHiLo( nStart, nEnd ) {
+var x=0;
+var nT = null;
+var nMax = -9999999999.0;
+var nMin =  9999999999.0;
+var bIn  = false;
+
+	while( x<200 ) {
+		nT = nStudy3.getValue(-x);
+		if ( nT<nEnd && nT>=nStart ) {
+			bIn  = true;
+			nMax = Math.max( nStudy1.getValue(-x), nMax );
+			nMin = Math.min( nStudy2.getValue(-x), nMin );
+		}
+		else if ( bIn==true ) {
+			break;
+		}
+		x++;
+	}
+	
+	return new Array( nMax, nMin );
+	
+}
+		
+
+function getAverage( nTime ) {
+var x=0;
+var nT=null;
+
+	while( x<100 ) {
+		nT = nStudy3.getValue(-x);
+		if ( nT==nTime ) {
+			nAvg = (nStudy1.getValue(-x)+nStudy2.getValue(-x))/2;
+			return( nAvg );
+		}
+		x++;
+	}
+	
+	return( null );
+	
+}
+    
+//== gID function assigns unique identifier to graphic/text routines
+function gID() {
+    grID ++;
+    return( grID );
+}
+
+//== Converts string time representation to minutes
+function TimeToMinutes( sStr ) {
+var i;
+var nTmp;
+
+	if ( sStr == "0" ) return( -1 );
+
+	i = sStr.split( ":" );
+	nTmp = 0 + (i[0] * 60) + (i[1]*1);
+	return ( nTmp );
+}
+
+//get the current bar time (as total minutes)
+function getBarTime( nOffset ) {
+var nTmp = 0;
+	nTmp = (getHour(-nOffset)*60) + getMinute(-nOffset);
+	return( nTmp );
+}
+
+
+

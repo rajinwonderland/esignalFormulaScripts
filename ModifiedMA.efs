@@ -1,0 +1,114 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2008. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    Modified MA
+
+Version:            1.0  01/12/2009
+
+Formula Parameters:                     Default:
+    Price                               Close
+    Length                              2
+    Thickness line                      2
+    Line Color                          Green
+    Display Cursor Labels               True
+
+Notes: 
+    The related article is copyrighted material. If you are not
+    a subscriber of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+
+var fpArray = new Array();
+var bInit = false;
+
+function preMain() {
+
+    setPriceStudy(true);
+    setShowCursorLabel(false);
+    setShowTitleParameters( false );
+    
+    setStudyTitle("Modified MA");
+    setCursorLabelName("ModifiedMA", 0);
+
+    setDefaultBarFgColor(Color.green, 0);
+    setPlotType(PLOTTYPE_LINE, 0); 
+    setDefaultBarThickness(1, 0);
+
+   
+    askForInput();
+    var x=0;
+    fpArray[x] = new FunctionParameter("LineColor", FunctionParameter.COLOR);
+    with(fpArray[x++]){
+        setName("Color line");
+        setDefault(Color.green);
+    }    
+
+    fpArray[x] = new FunctionParameter("ViewValue", FunctionParameter.BOOLEAN);
+    with(fpArray[x++]){
+        setName("Display Title Value");
+        setDefault(true);
+    }    
+    
+    fpArray[x] = new FunctionParameter("Length", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setLowerLimit(1);		
+        setDefault(2);
+    }
+
+    fpArray[x] = new FunctionParameter("Thickness", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("Thickness line");
+        setLowerLimit(1);		
+        setDefault(2);
+    }
+
+    fpArray[x] = new FunctionParameter("Price", FunctionParameter.STRING);
+    with(fpArray[x++]){
+        setName("Price");
+        addOption("open");
+        addOption("high");
+        addOption("low");
+        addOption("close");
+        setDefault("close");
+    }    
+
+
+}
+
+var SMA = null;
+var MMA = null;
+
+function main(Length, Price, Thickness, LineColor, ViewValue) {
+var Factor =0;
+var Slope =0;
+var Symbol, Interval;
+
+    if ( bInit == false ) {
+        setDefaultBarFgColor(LineColor, 0);
+        setDefaultBarThickness(Thickness, 0);
+        setShowCursorLabel(ViewValue);        
+        if(Symbol == null) Symbol = getSymbol();
+        if(Interval == null) Interval = getInterval();
+        var vSymbol = Symbol + "," + Interval;
+        SMA = sma(Length, eval(Price)(sym(vSymbol)));
+        bInit = true; 
+    } 
+
+    for ( var value1 = 1; value1 <= Length; value1++ ) {
+        Factor = 1 + (2 * (value1 - 1));
+        Slope = Slope + (eval(Price)(-value1 + 1) * ((Length - Factor) / 2));
+    }
+
+    MMA = SMA.getValue(0) + (6 * Slope) / ((Length + 1) * Length);
+  
+    return MMA; 
+}
+
+

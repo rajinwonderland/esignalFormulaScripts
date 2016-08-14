@@ -1,0 +1,192 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright © 2010) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+	
+Description:        
+	Based on SuperTrend indicator by Olivier Seban.
+
+Version:            1.0  1/10/2010
+
+
+Formula Parameters:                     Default:
+    Numbers of Period                      10
+    Multiplier                             3.0 
+
+**********************************/
+
+var fpArray = new Array();
+function preMain()
+{
+    setPlotType(PLOTTYPE_INSTANTCOLORLINE);
+    setPriceStudy(true);
+    setStudyTitle("SuperTrend");
+    setCursorLabelName("SuperTrend", 0);
+    setDefaultBarThickness(2, 0);
+
+    var x=0;
+    fpArray[x] = new FunctionParameter("gNbrPeriods", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+	setName("Number of Periods");
+	setLowerLimit(1);
+        setDefault(10);
+    }
+    fpArray[x] = new FunctionParameter("gMultiplier", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+	setName("Multiplier");
+        setLowerLimit(0);
+        setDefault(3.0);
+    }
+    fpArray[x] = new FunctionParameter("gColorUp", FunctionParameter.COLOR);
+    with(fpArray[x++])
+    {    
+        setName("Up Color");
+        setDefault(Color.lime);
+    }
+    fpArray[x] = new FunctionParameter("gColorDn", FunctionParameter.COLOR);
+    with (fpArray[x++])
+    {
+        setName("Down Color");
+        setDefault(Color.red);
+    }
+}
+
+var xTrend = null;
+var xTrendDir = null;
+var xUP = null;
+var xDn = null;
+var xATR = null;
+var xMPr = null;
+var xCls = null;
+var bMainInit = false;
+var curTrendValue = 0;
+function main(gNbrPeriods, gMultiplier,gColorUp, gColorDn)
+{
+    if(!bMainInit)
+    {
+        xATR = atr(gNbrPeriods);
+        xMPr = hl2();
+        xCls = close();
+        xUp = efsInternal("calcUp",gMultiplier,xATR,xMPr);
+        xDn = efsInternal("calcDn",gMultiplier,xATR,xMPr);
+        xTrendDir = efsInternal("calcTrendDir",xCls,xUp,xDn);
+        xTrend = efsInternal("calcTrend",xTrendDir,xUp,xDn,xCls);
+        bMainInit = true; 
+    }
+
+    var nCls = xCls.getValue(0);
+    var nTrendDir = xTrendDir.getValue(0);
+    var nTrendDir1 = xTrendDir.getValue(-1);
+    var nUp1 = xUp.getValue(-1);
+    var nDn1 = xDn.getValue(-1);
+
+    var vTrendDir = xTrendDir.getValue(0);
+    var vTrendDir1 = xTrendDir.getValue(-1);
+    if (vTrendDir>0) setBarFgColor(gColorUp);
+    else setBarFgColor(gColorDn);
+
+    var nUp = 0, nDn =0, nTrendDir = 0;
+    nUp = xUp.getValue(0);
+    nDn = xDn.getValue(0);
+    var vTrend = xTrend.getValue(0);
+    if (nUp == null && nDn == null && nTrend) return;
+
+    return vTrend;
+}
+
+function calcUp(numMult,xATR, xMPr)
+{
+    var nATR = 0;
+    var nMPr = 0;
+    var nUp = 0;
+    nATR = xATR.getValue(0);
+    nMPr = xMPr.getValue(0);
+    if (nATR == null && nMPr == null) return;
+    nUp = nMPr + numMult*nATR;
+    return nUp;
+}
+
+function calcDn(numMult,xATR, xMPr)
+{
+    var nATR = 0;
+    var nMPr = 0;
+    var nDn = 0;
+    nATR = xATR.getValue(0);
+    nMPr = xMPr.getValue(0);
+    if (nATR == null && nMPr == null) return;
+    nDn = nMPr - numMult*nATR;
+    return nDn;
+}
+
+function calcTrendDir(xCls,xUp,xDn)
+{
+    var nTrendDir = 0;
+    var nUp1 = xUp.getValue(-1);
+    var nDn1 = xDn.getValue(-1);
+    var nCls = xCls.getValue(0);
+    if (getCurrentBarCount()==1)
+    {
+        var nTrendDir1 = 1;
+        curTrendValue = nDn1;
+    }
+    else var nTrendDir1=ref(-1);
+    if (nUp1 == null && nDn1 == null && nCls == null) return;
+
+    if (nTrendDir1>0)
+    {
+        if (nDn1<curTrendValue) nDn1 = curTrendValue;
+        else curTrendValue = nDn1;
+    }
+    else
+    {
+        if (nUp1>curTrendValue) nUp1 = curTrendValue;
+        else curTrendValue = nUp1;
+    }
+ 
+    if (nCls>nUp1) {nTrendDir = 1; curTrendValue = nDn1}
+    else if (nCls<nDn1) {nTrendDir=-1; curTrendValue = nUp1}
+    else if (nTrendDir1==1) nTrendDir = 1;
+    else if (nTrendDir1==-1) nTrendDir = -1;
+    
+    return nTrendDir;
+}
+
+function calcTrend(xTrendDir, xUp,xDn,xCls)
+{
+    var nTrend = 0;
+    var nTDir = xTrendDir.getValue(0);
+    var nTDir1 = xTrendDir.getValue(-1);
+    var nUp = xUp.getValue(0);
+    var nUp1 = xUp.getValue(-1);
+    var nDn = xDn.getValue(0);
+    var nDn1 = xDn.getValue(-1);
+    var nCls = xCls.getValue(0);
+    if (nTDir==null && nTDir1==null && nUp==null && nUp1==null && nDn==null && nDn1==null) return;
+
+    if(getCurrentBarCount()==0)
+    {
+        if (nTDir>0) curTrendValue = nDn;
+        else curTrendValue = nUp;
+    }
+    else
+    {
+        if (nTDir>0)
+        {
+            if (nDn<curTrendValue && nTDir*nTDir1>0) nTrend=curTrendValue;
+            else {curTrendValue = nDn; nTrend = nDn;}
+        }
+
+        if (nTDir<0)
+        {
+            if (nUp>curTrendValue && nTDir*nTDir1>0) nTrend=curTrendValue;
+            else {curTrendValue = nUp; nTrend = nUp;}
+        }
+    }
+    
+    return nTrend;
+}

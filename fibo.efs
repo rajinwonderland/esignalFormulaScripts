@@ -1,0 +1,268 @@
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The purpose of this efs is... to be able to easily track Fibonacci
+retracements with just a click of the mouse. 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+//globals
+var nThick, n38Color, n50Color, n68Color, nLowColor, nHighColor, nThick1, nThick2, nFont; 
+var nPflag = false;
+
+function preMain() {
+	setPriceStudy(true);
+	setStudyTitle("Fib Retrace-Extension");
+	setShowCursorLabel(false);
+	setShowTitleParameters(false);
+	//setComputeOnClose();//minimizes cpu usage
+	nEditProperties(); //function contains all the edit studies Function Parameter statements normally in premain,
+}
+
+function main(xBars, nThickness, cH, cL, cM, lC, hC, hT, lT, nF,pR) {
+
+	nThick = nThickness;//debugPrintln ("nThick "+nThick);
+	n38Color = cH;
+	n50Color = cL;
+	n68Color = cM;
+	nLowColor = lC;
+	nHighColor = hC;
+	nThick1 = hT;
+	nThick2 = lT;
+	nFont = nF;
+	if ((pR == "true") || (pR == true))nPflag = true;
+}
+
+// support functions support functions support functions support functions  
+
+function displayIt(numbars, noffset) {//draws lines and displays percentages
+
+	var a = newDonchian(numbars);
+	var vHigh = a[0]; 
+	var vLow  = a[2];
+	var vFib38  = vLow + .618* (vHigh - vLow);
+	var vFib50  = vLow + .50* (vHigh - vLow);
+	var vFib62  = vLow + .382* (vHigh - vLow);
+	var vFib25  = vLow + .236* (vHigh - vLow);	
+	var vFib138  = vLow + 1.382* (vHigh - vLow);
+	var vFib150  = vLow + 2.618* (vHigh - vLow);
+	var vFib162  = vLow + 1.618* (vHigh - vLow);
+	var vFib163  = vLow - .618* (vHigh - vLow);
+	var vFib151  = vLow - 1.618* (vHigh - vLow);
+	var vFib139  = vLow - .382* (vHigh - vLow);
+	var vFib100  = vLow - 1* (vHigh - vLow);
+	var vFib101  = vLow - 1.382* (vHigh - vLow);
+	var vFib102  = vLow + 2* (vHigh - vLow);
+	var vFib103  = vLow + 2.382* (vHigh - vLow);
+	
+	var nText = new Object();
+	nText.v25 = "23.6%";
+	nText.v38 = "61.8%";
+	nText.v50 = "50.0%";
+	nText.v62 = "38.2%";
+	nText.v138 = "0.382";
+	nText.v150 = "1.618";
+	nText.v162 = "0.618";
+	nText.v163 = "0.618";
+	nText.v151 = "1.618";
+	nText.v139 = "0.382";
+	nText.v100 = "1.000";
+    nText.v101 = "1.382";
+    nText.v102 = "1.000";
+    nText.v103 = " 238%";
+	nText.vlow = "0%";
+	nText.vhigh = "100%";
+	
+	if (nPflag){
+	nText.v25 = vFib25.toFixed(4) + "_23.6%";
+	nText.v38 = vFib38.toFixed(4) + "_61.8%";
+    nText.v50 = vFib50.toFixed(4) + "_50.0%";
+    nText.v62 = vFib62.toFixed(4) + "_38.2%";
+    nText.v138 = vFib138.toFixed(4);
+    nText.v150 = vFib150.toFixed(4);
+    nText.v162 = vFib162.toFixed(4);
+    nText.v163 = vFib163.toFixed(4);
+    nText.v151 = vFib151.toFixed(4);
+    nText.v139 = vFib139.toFixed(4);
+    nText.v100 = vFib100.toFixed(4);
+    nText.v101 = vFib101.toFixed(4);
+    nText.v102 = vFib102.toFixed(4);
+    nText.v103 = vFib103.toFixed(4);
+    nText.vlow = vLow.toFixed(4);
+    nText.vhigh = vHigh.toFixed(4);
+	}
+	
+ 	//drawLineRelative(a[4], vLow, (a[4]+10), vLow,  PS_DOT, nThick, nLowColor, "low");    
+ 	//drawLineRelative(a[3], vHigh, (a[3]+10), vHigh,  PS_DOT, nThick, nHighColor, "high"); 
+ 	drawLineRelative(a[4], vLow, 10, vLow,  PS_DASH, nThick, nLowColor, "low");    
+ 	drawLineRelative(a[3], vHigh, 10, vHigh,  PS_DASH, nThick, nHighColor, "high"); 
+ 	
+	drawLineRelative(-numbars+30, vFib25, 10, vFib25,  PS_DOT, nThick, Color.cyan, "label0"); 	
+	drawLineRelative(-numbars+30, vFib38, 10, vFib38,  PS_DOT, nThick, n38Color, "label1");
+	drawLineRelative(-numbars+30, vFib50, 10, vFib50,  PS_DASH, nThick, n50Color, "label2");
+	drawLineRelative(-numbars+30, vFib62, 10, vFib62,  PS_DOT, nThick, n68Color, "label3");
+	drawLineRelative(-numbars+10, vFib138, 10, vFib138,  PS_DOT, nThick, n68Color, "label4");
+	drawLineRelative(-numbars+10, vFib150, 10, vFib150,  PS_DOT, nThick, n68Color, "label5");
+	drawLineRelative(-numbars+10, vFib162, 10, vFib162,  PS_DOT, nThick, n68Color, "label6");
+	drawLineRelative(-numbars+10, vFib163, 10, vFib163,  PS_DOT, nThick, n68Color, "label7");
+	drawLineRelative(-numbars+10, vFib151, 10, vFib151,  PS_DOT, nThick, n68Color, "label8");
+	drawLineRelative(-numbars+10, vFib139, 10, vFib139,  PS_DOT, nThick, n68Color, "label9");
+	drawLineRelative(-numbars+10, vFib100, 10, vFib100,  PS_DOT, nThick, n68Color, "label10");
+	drawLineRelative(-numbars+10, vFib101, 10, vFib101,  PS_DOT, nThick, n68Color, "label11");
+	drawLineRelative(-numbars+10, vFib102, 10, vFib102,  PS_DOT, nThick, n68Color, "label12");
+	drawLineRelative(-numbars+10, vFib103, 10, vFib103,  PS_DOT, nThick, n68Color, "label13");
+	
+	
+	var Flags = Text.NORMAL | Text.LEFT | Text.ONTOP | Text.BOTTOM;
+	var FontName = "Arial";var FontSize = null;var BGColor = null;var FGColor = null;
+
+	var xBar =5;var yValue = vFib25;var bTagCount = "25%";
+	drawTextRelative(xBar, yValue, nText.v25, Color.cyan, BGColor,Flags, FontName, nFont, bTagCount);
+
+	var xBar =5;var yValue = vFib38;var bTagCount = "38%";
+	drawTextRelative(xBar, yValue, nText.v38, n38Color, BGColor,Flags, FontName, nFont, bTagCount);
+	
+    var xBar =5;var yValue = vFib50;var bTagCount = "50%";
+	drawTextRelative(xBar, yValue, nText.v50, n50Color, BGColor,Flags, FontName, nFont, bTagCount);
+	
+    var xBar =5;var yValue = vFib62;var bTagCount = "62%";
+	drawTextRelative(xBar, yValue, nText.v62, n68Color, BGColor,Flags, FontName, nFont, bTagCount);
+	
+    var xBar =7;var yValue = vFib138;var bTagCount = "138%";
+	drawTextRelative(xBar, yValue, nText.v138, Color.red, BGColor,Flags, FontName, nFont, bTagCount);
+	
+    var xBar =7;var yValue = vFib150;var bTagCount = "2.618";
+	drawTextRelative(xBar, yValue, nText.v150, Color.red, BGColor,Flags, FontName, nFont, bTagCount);
+	
+    var xBar =7;var yValue = vFib162;var bTagCount = "162%";
+	drawTextRelative(xBar, yValue, nText.v162, Color.red, BGColor,Flags, FontName, nFont, bTagCount);
+	
+	var xBar =7;var yValue = vFib163;var bTagCount = "-62%";
+	drawTextRelative(xBar, yValue, nText.v163, Color.red, BGColor,Flags, FontName, nFont, bTagCount);
+	
+	var xBar =7;var yValue = vFib151;var bTagCount = "-50%";
+	drawTextRelative(xBar, yValue, nText.v151, Color.red, BGColor,Flags, FontName, nFont, bTagCount);
+	
+	var xBar =7;var yValue = vFib139;var bTagCount = "-38%";
+	drawTextRelative(xBar, yValue, nText.v139, Color.red, BGColor,Flags, FontName, nFont, bTagCount);
+	
+	var xBar =7;var yValue = vFib100;var bTagCount = "-100%";
+	drawTextRelative(xBar, yValue, nText.v100, Color.red, BGColor,Flags, FontName, nFont, bTagCount);
+	
+	var xBar =7;var yValue = vFib101;var bTagCount = "-138%";
+	drawTextRelative(xBar, yValue, nText.v101, Color.red, BGColor,Flags, FontName, nFont, bTagCount);
+	
+	var xBar =7;var yValue = vFib102;var bTagCount = "200%";
+	drawTextRelative(xBar, yValue, nText.v102, Color.red, BGColor,Flags, FontName, nFont, bTagCount);
+	
+	var xBar =7;var yValue = vFib103;var bTagCount = "238%";
+	drawTextRelative(xBar, yValue, nText.v103, Color.red, BGColor,Flags, FontName, nFont, bTagCount);
+
+ 	drawTextRelative(xBar, yValue, nText.v103, Color.red, BGColor,Flags, FontName, nFont, bTagCount);
+	//var xBar =(a[4]+10);
+	var xBar = 7;var yValue = vLow;var bTagCount = "0%";
+	drawTextRelative(xBar, yValue, nText.vlow, nLowColor, BGColor,Flags, FontName, nFont, bTagCount);
+	//var xBar =(a[3]+10);
+	var xBar = 7;var yValue = vHigh;var bTagCount = "100%";
+	drawTextRelative(xBar, yValue, nText.vhigh, nHighColor, BGColor,Flags, FontName, nFont, bTagCount);
+}
+
+function onLButtonDblClk(barIndex,  yValue) { // Left button 2x click...you will get both LButton and LButtonDblClk
+	
+	displayIt((Math.abs(barIndex)), yValue);//y value not used
+}
+
+function newDonchian(n){//finds the high and low values in addition to the bars where they are
+	var hi = 0;var lo = 99999;
+	if (n==null)
+		var nbars = Math.abs(getOldestBarIndex());
+	else nbars = Math.abs(n);
+	while (nbars>0){
+		if (high(-nbars)>hi){
+			hi = high(-nbars);
+			hibar = -nbars;
+		}
+		if (low(-nbars)<lo){
+			lo = low(-nbars);
+			lobar = -nbars;
+		}
+		nbars--;
+	}
+	return new Array (hi,(hi+lo)/2,lo, hibar,lobar);
+}
+
+function nEditProperties() {	//contains all the edit studies Function Parameter statements normally in premain, put here for clarity
+	
+	var fp1 = new FunctionParameter("xBars", FunctionParameter.NUMBER);
+	fp1.setName("Number of Bars");
+	fp1.setLowerLimit(0);
+	fp1.setDefault(0);
+
+	var fp2 = new FunctionParameter("nThickness", FunctionParameter.NUMBER);
+	fp2.setName("Line Thickness");
+	fp2.setLowerLimit(1);
+	fp2.addOption("1");
+	fp2.addOption("2");
+	fp2.addOption("3");
+	fp2.addOption("4");
+	fp2.setDefault(1);
+	
+	var fp3 = new FunctionParameter("hT", FunctionParameter.NUMBER);
+	fp3.setName("High Thickness");
+	fp3.setLowerLimit(1);
+	fp3.addOption("1");
+	fp3.addOption("2");
+	fp3.addOption("3");
+	fp3.addOption("4");
+	fp3.setDefault(1);
+	
+	var fp4 = new FunctionParameter("lT", FunctionParameter.NUMBER);
+	fp4.setName("Low Thickness");
+	fp4.setLowerLimit(1);
+	fp4.addOption("1");
+	fp4.addOption("2");
+	fp4.addOption("3");
+	fp4.addOption("4");
+	fp4.setDefault(1);
+	
+	var fp5 = new FunctionParameter("cH", FunctionParameter.COLOR);
+	fp5.setName("38% Color");
+	fp5.setDefault(Color.yellow);
+
+	var fp6 = new FunctionParameter("cL", FunctionParameter.COLOR);
+	fp6.setName("50% Color");
+	fp6.setDefault(Color.magenta);
+	
+	var fp7 = new FunctionParameter("cM", FunctionParameter.COLOR);
+	fp7.setName("62% Color");
+	fp7.setDefault(Color.lime);
+	
+	var fp8 = new FunctionParameter("cM", FunctionParameter.COLOR);
+	fp8.setName("138% Color");
+	fp8.setDefault(Color.cyan);
+	
+	var fp9 = new FunctionParameter("lC", FunctionParameter.COLOR);
+	fp9.setName("Low Color");
+	fp9.setDefault(Color.blue);
+	
+	var fp10 = new FunctionParameter("hC", FunctionParameter.COLOR);
+	fp10.setName("High Color");
+	fp10.setDefault(Color.blue);
+	
+	var fp11 = new FunctionParameter("pR", FunctionParameter.BOOLEAN);
+	fp11.setName("Display Price?");
+	fp11.setDefault(true); 
+	
+	var fp12 = new FunctionParameter("nF", FunctionParameter.NUMBER);
+	fp12.setName("Font Size");
+	fp12.addOption("6");
+	fp12.addOption("7");
+	fp12.addOption("8");
+	fp12.addOption("9");
+	fp12.addOption("10");
+	fp12.addOption("11");
+	fp12.addOption("12");
+	fp12.addOption("13");
+	fp12.addOption("14");
+	fp12.addOption("15");
+	fp12.addOption("16");
+	fp12.addOption("17");
+	fp12.setDefault(9);
+}

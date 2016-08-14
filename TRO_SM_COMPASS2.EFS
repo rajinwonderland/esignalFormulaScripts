@@ -1,0 +1,526 @@
+/*****************************************************************
+
+
+TRO_SM_COMPASS2 5:05 AM 8/11/2006
+
+
+
+Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne
+
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+
+Studie: Marketcenter
+
+Autor : augustus
+
+Version: Test 25.07
+
+
+
+
+Provided By : eSignal (c) Copyright 2004
+Description:  Pixel Spacing Example
+
+drawTextPixel(xBar, yValue, Text, [FGColor], [BGColor], [Flags], 
+        [FontName], [FontSize], [TagName], [cx], [cy])
+
+This function is used to draw text on the chart at precise pixel 
+locations. It is used in conjunction with the getTextHeight() and 
+getTextWidth() functions. 
+
+xBar:  Relative position where text should appear. 
+yValue:  y-axis value where text should appear 
+Text:  The text that should be displayed 
+FGColor:  Optional. If not provided, pass null. Foreground color of the text. 
+BGColor:  Optional. if not provided, pass null. Background color of the text 
+Flags:  Text Flags (these can be ORd together). Pass null if not using flags. 
+FontName:  Optional. If not provided, pass null. Otherwise, pass a font name (e.g, "Courier" or "Arial"). 
+FontSize:  Optional. If not provided, pass null. Otherwise, pass the font size to use (e.g., 11 or 15 or 8, etc.) 
+TagName:  A unique identifier for this text object. 
+cx:   Optional. Pixel spacing control. 
+cy:   Optional. Pixel spacing control.
+
+
+Notes:
+
+The cx and cy parameters control the
+width (cx) and height (cy) of the text label.  They are also 
+available in the drawTextRelative and drawTextAbsolute functions, 
+but are not very useful unless you are using them in combination 
+with text flags, RELATIVETOTOP, RELATIVETOLEFT and RELATIVETOBOTTOM.  
+Both cx and cy require whole numbers.
+
+You can pass positive or negative numbers to these parameters.
+If you use positive whole numbers then the size is based on that
+number of pixels.
+    cx of 15 will be the width of the text label of 15 pixels.
+    cy of 15 will be the height of the text label of 15 pixels.
+If you use negative whole numbers then the size is relative to the
+specified font size.
+    cx of -15 will be the approxomate width of 15 characters of the 
+        specified font.
+    cy of -2 will be 2 times the height of the specified 
+        font.  -3 would be 3 times the height etc.
+
+
+The formula example below draws a table containing
+3 columns and 2 rows of text labels.
+
+
+Verwendete Indikatoren:
+
+
+*****************************************************************/
+
+var nFontCY = 0;
+var nFontCX = 0;
+var nColWidth	= 0;
+var nRowThickness = 1;
+var nFontSize   = 10;
+var sStr;
+var tStr;
+var diff1 =0;
+var diff2 =0;
+var midpoint1 =0;
+var realtimepivot =0;
+
+
+var xR1C1Count = 0;
+var tR1C1      = null;
+var tR1C11     = null;
+
+var xR1C2Count = 0;
+var tR1C2      = null;
+var tR1C21     = null;
+ 
+
+
+function preMain() {
+    setStudyTitle("TRO_SM_COMPASS2");
+    setShowCursorLabel(false);
+    setShowTitleParameters(false);
+    
+
+    var iButtonX = new FunctionParameter("iButtonX", FunctionParameter.NUMBER);
+	iButtonX.setDefault( 1 ); 
+
+    var iButtonY = new FunctionParameter("iButtonY", FunctionParameter.NUMBER);
+	iButtonY.setDefault( 1 ); 
+
+
+    var iFontSize = new FunctionParameter("iFontSize", FunctionParameter.NUMBER);
+        iFontSize.setName("Button Font Size");
+	iFontSize.setDefault( 10 ); 
+ 
+    var xLength1 = new FunctionParameter("xLength1", FunctionParameter.NUMBER);
+	xLength1.setDefault( 05 ); 
+	xLength1.setName("Fast EMA Length");
+
+    var xLength2 = new FunctionParameter("xLength2", FunctionParameter.NUMBER);
+	xLength2.setDefault( 13 ); 
+	xLength2.setName("Med EMA Length");
+
+    var xLength3 = new FunctionParameter("xLength3", FunctionParameter.NUMBER);
+	xLength3.setDefault( 26 );
+	xLength3.setName("Slow EMA Length");
+
+    var xLength4 = new FunctionParameter("xLength4", FunctionParameter.NUMBER);
+	xLength4.setDefault( 2 );
+	xLength4.setName("RSI Periods");
+
+    var fp4 = new FunctionParameter("roundlen", FunctionParameter.NUMBER);
+        fp4.setName("roundlen");
+        fp4.setLowerLimit(0);
+        fp4.setDefault(2);
+
+
+    /***** Column Width is used here for the cx parameter *****/
+	var fp = new FunctionParameter("inputColWidth", FunctionParameter.NUMBER);
+	fp.setName("Column Width");
+	fp.setDefault(80);
+
+    /***** Row Thickness is used here for the cy parameter *****/
+	var fp = new FunctionParameter("inputRowThickness", FunctionParameter.NUMBER);
+	fp.setName("Row Thickness");
+	fp.setDefault(-1.2);
+
+	var fp = new FunctionParameter("inputFontSize", FunctionParameter.NUMBER);
+	fp.setName("Font Size");
+	fp.setLowerLimit(1);
+	fp.setDefault(11);
+
+    /*****
+        With drawTextPixel, X Start = the number of pixels from the left of 
+            the window.
+        With drawTextRelative or Absolute, X Start will be the bar index unless
+            the RELATIVETO### text flags are used.  In which case the values
+            will represent pixels.
+    *****/
+	var fp = new FunctionParameter("inputXstart", FunctionParameter.NUMBER);
+	fp.setName("X Start");
+	fp.setLowerLimit(1);
+	fp.setDefault(5);
+
+    /*****
+        With drawTextPixel, Y Start = the number of pixels from the top of 
+            the window.
+        With drawTextRelative or Absolute, Y Start will be relative to the 
+            price scale of the chart symbol unless the RELATIVETO### text 
+            flags are used.  In which case the values will represent pixels.
+    *****/
+	var fp = new FunctionParameter("inputYstart", FunctionParameter.NUMBER);
+	fp.setName("Y Start");
+	fp.setLowerLimit(1);
+	fp.setDefault(20);	
+	
+	
+	
+}
+
+var bEdit = true;
+
+//Für Trendtrader
+var ret = null;
+var avgTR = null;
+var highestC = null;
+var lowestC = null;
+var bInit = false;
+
+// Für HiLo-Activator
+var vMA1 = null;
+var vMA2 = null;
+var Swing = 0;
+var cInit = false;
+
+//Truth
+var dEdit = true;
+var vATR = null;
+var vDonchian = null;
+
+function main( 
+             xLength1, xLength2, xLength3, xLength4, roundlen ,
+            
+            inputColWidth, inputRowThickness, inputFontSize, 
+            inputXstart, inputYstart,
+             
+            
+	     iFontSize, iButtonX, iButtonY) {
+            
+           
+   
+  // initialize upon first loading formula
+    if(getBarState() == BARSTATE_ALLBARS) {
+        drawTextPixel( iButtonX , iButtonY, " SM_COMPASS2 @URL=EFS:editParameters", Color.white, 	Color.green, 
+            Text.RELATIVETOLEFT|Text.RELATIVETOBOTTOM|Text.ONTOP|Text.BOLD|Text.BUTTON, 
+            "Comic Sans MS", 13, "UpExp"); 
+        vDate = new Date();
+        iInterval = getInterval();
+        vSymbol = getSymbol().toUpperCase();
+    
+        // for RTH, eg, to convert, ES Z2 to ES Z2=2
+        var rootSymbol = vSymbol.substring(0,3);
+        if (rootSymbol == "ES " || rootSymbol == "NQ ") 
+            if ( vSymbol.indexOf("=2") == -1 ) vSymbol += "=2";
+    
+        vSymbol += ",D";
+        return null;
+    }
+         
+    
+    
+    
+    
+    //  prevents the formula from executing except at bar 0 and on new bar.
+	if(getCurrentBarIndex() != 0 && getBarState() != BARSTATE_NEWBAR) return;
+
+    // initialization routine to set values for global variables
+    if (bEdit == true) {
+        nColWidth = Math.round(inputColWidth);
+        nRowThickness = Math.round(inputRowThickness);
+        nFontSize = Math.round(inputFontSize);
+        
+        /***** Used for setting the space between x/y anchors for text
+            labels based on the font height *****/
+        if (nRowThickness < 0) {
+            nFontCY = getTextHeight("A", null, nFontSize)*(nRowThickness);
+        } else {
+            nFontCY = -nRowThickness;
+        }
+        
+        /***** This will get the maximum width for the specified string
+            based on the specified font type.  If the font type is not 
+            specified it uses a default Arial. *****/
+        if (nColWidth < 0) {
+            nFontCX = getTextWidth("Row ## Col ##", null, nFontSize);
+        } else {
+            nFontCX = nColWidth;
+        }
+        bEdit = false;
+    }
+
+var nX = inputXstart;
+var nY = inputYstart; 
+
+    
+    //Nur TEXT
+        
+        
+    tStr="SWING" + xLength2 + "x" + xLength3;
+    drawTextPixel(nX, nY, tStr, Color.blue, Color.lightgrey,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "r4c7", nColWidth, nRowThickness);
+    tStr= "SCALP "  + xLength1;
+    drawTextPixel(nX+=nFontCX, nY, tStr, Color.blue, Color.lightgrey,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "r4c8", nColWidth, nRowThickness);
+    tStr= "RSI(" + xLength4 + ")";
+    drawTextPixel(nX+=nFontCX, nY, tStr, Color.blue, Color.lightgrey,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "r4c9", nColWidth, nRowThickness);
+
+
+    tStr= "PrevMid";
+    drawTextPixel(nX+=nFontCX, nY, tStr, Color.blue, Color.lightgrey,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "r4c10a", nColWidth, nRowThickness);
+
+    
+    tStr= "Middle";
+    drawTextPixel(nX+=nFontCX, nY, tStr, Color.white, Color.blue,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "r4c10", nColWidth, nRowThickness);
+        
+    
+
+    //Zeile2
+    
+    nX = inputXstart;
+    nY -= nFontCY;
+
+
+    
+    var Close = close(-1);
+    
+   
+        
+        //Close zum Openkurs
+
+
+
+var xInterval = iInterval ;
+
+var xHHD = high(inv(xInterval) ); //this creates the series object of the high
+
+var xLLD  = low(inv(xInterval)  ); //this creates the series object of the low
+
+var xCLD  = close(inv(xInterval)  ); //this creates the series object of the close
+
+
+var  HHD  = formatPriceNumber(xHHD)*1 ; 
+
+var  LLD  = formatPriceNumber(xLLD)*1 ; 
+
+var  CLD  = formatPriceNumber(xCLD)*1 ; 
+
+
+var xMidPoint = midpoint(0);
+
+ 
+
+Mid = formatPriceNumber( xMidPoint) *1   ; // Average of High and Low
+
+xPrevMid = 0.5*( xHHD.getValue(-1) + xLLD.getValue(-1) )  ; // Average of High and Low
+
+PrevMid = formatPriceNumber( xPrevMid )*1   ; // Average of High and Low
+
+
+var vaEMA = ema( xLength1 , inv(xInterval) );
+
+var xaEMA = formatPriceNumber( vaEMA  ) * 1   ;    
+
+var xaEMA1 = formatPriceNumber( vaEMA.getValue(-1)  ) * 1   ;    
+
+
+
+
+var vbEMA = ema( xLength2 , inv(xInterval) );
+
+var xbEMA = formatPriceNumber( vbEMA  ) * 1   ;    
+
+var xbEMA1 = formatPriceNumber( vbEMA.getValue(-1)  ) * 1   ;    
+
+
+
+
+var vcEMA = ema( xLength3 , inv(xInterval) );
+
+var xcEMA = formatPriceNumber( vcEMA  ) * 1   ;    
+
+var xcEMA1 = formatPriceNumber( vcEMA.getValue(-1)  ) * 1   ;    
+
+
+
+
+var vdEMA = ema( xLength4 , inv(xInterval) );
+
+var xdEMA = formatPriceNumber( vdEMA  ) * 1   ;    
+
+var xdEMA1 = formatPriceNumber( vdEMA.getValue(-1)  ) * 1   ;    
+
+
+var zRSI = rsi( xLength4  ); 
+var xRSI = rnd( zRSI , 2  ); 
+
+
+
+var xDiff1 = xbEMA - xcEMA ; // MED EMA X SLOW EMA - SWING TRADE
+
+
+var xDiff2 = CLD - xaEMA  ;  // close x FAST EMA - SCALP TRADE
+
+
+var xDiff4 = CLD - xPrevMid ;     // CLOSE X PREV MID POINT - TRADE DIRECTION
+
+
+// SWING
+
+
+if( xDiff1 >= 0  ) {
+           xFGColor = Color.black; 
+           xBGColor = Color.lime; 
+           tR1C1    = "LONG"; 
+} else if( xDiff1 < 0 ) {
+           xFGColor = Color.black; 
+	   xBGColor = Color.red; 
+           tR1C1    = "SHORT";  
+} else {   xFGColor = Color.black; 
+	   xBGColor = Color.yellow; 
+           tR1C1    = "=" ;  
+}
+
+
+
+if( getBarState() == BARSTATE_NEWBAR ) {
+if( tR1C1 == tR1C11   ) { xR1C1Count = xR1C1Count + 1 ; }
+  else { xR1C1Count = 1 ; }
+tR1C11 = tR1C1 ;
+}
+
+        sStr= tR1C1 + " " + xR1C1Count ;
+        drawTextPixel(nX, nY, sStr, xFGColor, xBGColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "row3C1", nColWidth, nRowThickness);
+
+
+        
+// SCALP
+
+
+if( xDiff2 >= 0  ) {
+           xFGColor = Color.black; 
+           xBGColor = Color.lime; 
+           tR1C2    = "LONG"; } 
+else if( xDiff2 < 0 ) {
+           xFGColor = Color.black; 
+	   xBGColor = Color.red; 
+           tR1C2    = "SHORT";  
+} else {   xFGColor = Color.black; 
+	   xBGColor = Color.yellow; 
+           tR1C2    = "=" ;  
+}
+
+
+
+if( getBarState() == BARSTATE_NEWBAR ) {
+if( tR1C2 == tR1C21   ) { xR1C2Count = xR1C2Count + 1 ; }
+  else { xR1C2Count = 1 ; }
+tR1C21 = tR1C2 ;
+}
+
+        sStr= tR1C2 + " " + xR1C2Count ;
+        drawTextPixel(nX+=nFontCX, nY, sStr, xFGColor, xBGColor,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "row3C2", nColWidth, nRowThickness);
+
+
+
+// RSI       
+ 
+
+	sStr = ""+ xRSI ; 
+        if  (  xRSI >= 95  ) {
+        drawTextPixel(nX+=nFontCX, nY,sStr, Color.black, Color.red,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "row3c09", nColWidth, nRowThickness);}
+	
+        else 
+        
+        if  ( xRSI < 5  ) {
+        drawTextPixel(nX+=nFontCX, nY,sStr, Color.white, Color.navy,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "row3c09", nColWidth, nRowThickness);}
+
+        else 
+
+        {
+        drawTextPixel(nX+=nFontCX, nY,sStr, Color.black, Color.cyan,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "row3c09", nColWidth, nRowThickness);}
+        
+
+
+        //Mittelpunkt
+
+//      var xMidPoint1 = midpoint(0,inv("d") );
+
+        midpoint1 = (high(-1, inv("d"))+low(-1, inv("d")))/2;
+        sStr =rnd (midpoint1,roundlen) ;
+        
+        if  (close(0)<= midpoint1) 
+        drawTextPixel(nX+=nFontCX, nY,sStr, Color.black, Color.red,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "row3c10", nColWidth, nRowThickness);
+        
+        if  (close(0)> midpoint1) 
+        drawTextPixel(nX+=nFontCX, nY,sStr, Color.black, Color.green,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "row3c10", nColWidth, nRowThickness);
+        
+
+        
+        //Mittelpunkt
+        midpoint0 = (high(0, inv("d"))+low(0, inv("d")))/2;
+        sStr =rnd (midpoint0,roundlen) ;
+        
+        if  (close(0)<= midpoint0) 
+        drawTextPixel(nX+=nFontCX, nY,sStr, Color.black, Color.red,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "row3c10a", nColWidth, nRowThickness);
+        
+        if  (close(0)> midpoint0) 
+        drawTextPixel(nX+=nFontCX, nY,sStr, Color.black, Color.green,
+        Text.FRAME | Text.CENTER | Text.VCENTER | Text.BOLD,
+        null, nFontSize, "row3c10a", nColWidth, nRowThickness);
+        
+
+        
+        
+        
+ 	return;
+}
+//==rnd will round to N digits.
+function rnd(value, N) {
+    var n;
+    var mult=1;
+    for(n=0;n<N;n++) mult*=10;
+    value*=mult;
+    return Math.round( value,N)/mult;
+}
+
+function editParameters() {
+    askForInput("TRO_SM_COMPASS2");
+    return;
+}

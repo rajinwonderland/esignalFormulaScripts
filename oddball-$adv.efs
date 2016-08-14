@@ -1,0 +1,36 @@
+/*************************************
+Provided By:  
+    Novvum Consulting Group (2015) 
+All rights reserved. This script was created by Raj K Singh to complement the OddBall trading system. Please see the Notes in OddBall-Signals.efs regarding the overall strategy.
+
+Description:        
+    Oddball-$ADV by Raj K Singh
+
+Version:            1.00  11/17/2015
+
+Comments: This script plots the NYSE Advances using the Time Template of the main OddBall chart on which it should be run.
+
+It highlights with a magenta colored triangle the historical bar used (together with the current one) to compute
+the ROC and also provides the closing value of that bar as a reference.
+***************************************/
+
+
+function preMain() {
+    setCursorLabelName("$ADV");
+    setStudyTitle("OddBall-$ADV")
+    setPlotType(PLOTTYPE_HISTOGRAM, 0 );
+    setHistogramBase(0);
+    setDefaultBarFgColor(Color.black, 0);
+    setDefaultBarThickness(2, 0);
+    //setStudyMax(2600)
+    }
+
+function main() {
+
+var vSymbol = getValue("Close", 0, -1, "$ADV");
+
+drawShapeRelative(-7,getValue("Close",-7,-1,"$ADV"), Shape.DOWNTRIANGLE, "", Color.magenta,Shape.TOP, 1);
+drawTextRelative(-7,0,getValue("Close",-7,-1,"$ADV"),Color.white,Color.magenta,Text.BOLD|Text.CENTER|Text.RELATIVETOTOP,"MS Sans Serif",10,2);
+
+return vSymbol;
+}

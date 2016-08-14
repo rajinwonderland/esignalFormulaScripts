@@ -1,0 +1,108 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright © 2010) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+	
+Description:        
+    The JK HiLo Index
+ 
+Version:            1.0  15/08/2011
+
+Formula Parameters:                     Default:
+Index:                                  NASDAQ
+Period:                                 10
+
+Notes:
+    The related article is copyrighted material. If you are not
+    a subscriber of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+
+var bVersion = null;
+var fpArray = new Array();
+function preMain()
+{
+    setCursorLabelName("JK_HiLo");
+
+    var x = 0;
+    fpArray[x] = new FunctionParameter("gIndex", FunctionParameter.STRING);
+    with (fpArray[x++])
+    {
+            setName("Index");
+            addOption("AMEX"); 
+            addOption("NYSE");
+            addOption("NASDAQ");
+            setDefault("NASDAQ");
+    }
+    fpArray[x] = new FunctionParameter("gPeriod", FunctionParameter.INTEGER);
+    with (fpArray[x++])
+    {
+            setName("Average Period");
+            setDefault(10);
+    }
+}
+
+var xEH = null;
+var xF = null;
+var xI = null;
+var bInit = false; 
+function main(gIndex, gPeriod)
+{
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;
+    if (getBarState()==BARSTATE_ALLBARS)
+    {
+            addBand(20, PS_DOT, 1, Color.grey, "l20");
+            addBand(90, PS_DOT, 1, Color.grey, "l90");
+    }
+    if ( !bInit )
+    {
+        xEH = efsInternal("calcIndexes", gIndex) 
+        xF = sma(gPeriod, getSeries(xEH, 0));
+        xI = sma(gPeriod, getSeries(xEH, 1));
+        bInit = true; 
+    }
+    var vF = xF.getValue(0);
+    if ( vF == null ) return;
+    var vG = ((vF>=2.15)||(vF<=0.4))? vF : 1;
+    var vI = xI.getValue(0);
+    return vI*vG*100;
+}
+
+function calcIndexes(sIndex)
+{
+    var extension = "";
+
+    if ( sIndex == "NASDAQ" )  extension = "NQ-ST"
+    else if( sIndex == "AMEX" )  extension = "AM-ST"
+    else if( sIndex == "NYSE" )  extension = "NY-ST"
+
+    var xA = close(sym("$ACTV."+extension));
+    var xB = close(sym("$YRHI."+extension));
+    var xC = close(sym("$YRLO."+extension));
+    
+    var vA = xA.getValue(0);
+    var vB = xB.getValue(0);
+    var vC = xC.getValue(0);
+    
+    return new Array (100*Math.min(vB, vC)/vA, vB/(vB+vC));
+}
+
+function verify() {
+    var b = false;
+    if (getBuildNumber() < 779) {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } else {
+        b = true;
+    }
+    return b;
+}

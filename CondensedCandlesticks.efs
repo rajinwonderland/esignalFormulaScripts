@@ -1,0 +1,243 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright В© 2014) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+
+Description:        
+    Candlesticks, Condensed by David Cline
+
+Formula Parameters:                     Default:
+Weight Periods                          10
+Segment Count                           6
+Report Mode                             Include all candles
+
+Version:            1.00  12/08/2014
+
+Notes:
+    The related article is copyrighted material. If you are not a subscriber
+    of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+
+var fpArray = new Array();
+
+function preMain(){
+    
+    setStudyTitle("CondensedCandlesticks");
+    setPriceStudy(true);
+    
+    setCursorLabelName("Bar Signature", 0);
+    setComputeOnClose(true);
+
+    var x = 0;
+
+    fpArray[x] = new FunctionParameter("fpPeriods", FunctionParameter.NUMBER);
+    with(fpArray[x++]){
+        setName("Weight Periods");
+        setLowerLimit(1);
+        setDefault(10);
+    }
+
+    fpArray[x] = new FunctionParameter("fpSegCount", FunctionParameter.NUMBER);
+    with(fpArray[x++]){
+        setName("Segment Count");
+        setLowerLimit(1);
+        setDefault(6);
+    }
+
+    fpArray[x] = new FunctionParameter("fpRepMode", FunctionParameter.STRING);
+    with(fpArray[x++]){
+        setName("Report Mode");
+        addOption("Include all candles");
+        addOption("Include the top and bottom 10 candles");
+        setDefault("Include all candles");
+    }
+}
+
+var bInit = false;
+var bVersion = null;
+
+var xOpen = null;
+var xHigh = null;
+var xLow = null;
+var xClose  = null;
+
+var candlePatterns = {};
+var nSegmentDivisor = null;
+
+var fCandles = new File("Candles.csv");
+
+//The Script outputs the results of the analysis of Candles signatures
+//to the file "C:\Users\User_name\Documents\Interactive Data\FormulaOutput\Candles.csv" 
+
+function main(fpPeriods, fpSegCount, fpRepMode){
+    
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;
+    
+    nSegmentDivisor = 100.0 / fpSegCount;
+    
+    if (!bInit){
+        
+        xOpen = open();
+        xHigh = high();
+        xLow = low();
+        xClose = close();
+        
+        xRange = efsInternal('calc_Range', xHigh, xLow);
+        xAverageRange = sma(fpPeriods, xRange);
+        
+        bInit = true;
+    }
+
+    if (getBarState() == BARSTATE_ALLBARS)
+        candlePatterns = {};
+        
+    var nCandleRange = xRange.getValue(-1);
+    var nAverageRange = xAverageRange.getValue(0);
+    
+    if (nAverageRange == null || nCandleRange == null) 
+        return;
+    
+    var nRangeMultiplier = nCandleRange / nAverageRange;
+    if (nRangeMultiplier > 1) nRangeMultiplier = 1;
+    var nCandleRange = nCandleRange / 100;
+    
+    var nPrOpen = xOpen.getValue(-1);
+    var nPrHigh = xHigh.getValue(-1);
+    var nPrLow = xLow.getValue(-1);
+    var nPrClose = xClose.getValue(-1);
+    
+    var nClose = xClose.getValue(0);
+    var nStartClose = xClose.getValue(-fpPeriods + 1);
+    
+    if (nPrOpen == null || nPrHigh == null || 
+        nPrLow == null || nPrClose == null || 
+        nStartClose == null)
+        return;
+    
+    var nHO = Math.round((((nPrHigh - nPrOpen) / nCandleRange) * nRangeMultiplier ) / nSegmentDivisor); 
+    var nHC = Math.round((((nPrHigh - nPrClose) / nCandleRange) * nRangeMultiplier ) / nSegmentDivisor); 
+    var nOL = Math.round((((nPrOpen - nPrLow) / nCandleRange) * nRangeMultiplier ) / nSegmentDivisor); 
+    
+    var stSign = null;
+    
+    if (nPrOpen > nClose) stSign = '+'
+    else stSign = '-';
+    
+    var stCandleSignature = stSign + nHO + ':' + nHC + ':' + nOL;
+    
+    var nCandleReturn = nStartClose - nClose;
+
+    if  (candlePatterns.hasOwnProperty(stCandleSignature)){
+        
+        if (nCandleReturn > 0) candlePatterns[stCandleSignature]['Ups'] += 1
+        else candlePatterns[stCandleSignature]['Ups'] += 0; 
+        
+        if (nCandleReturn <= 0) candlePatterns[stCandleSignature]['Downs'] += 1
+        else candlePatterns[stCandleSignature]['Downs'] += 0; 
+        
+        candlePatterns[stCandleSignature]['Total'] += nCandleReturn;
+        candlePatterns[stCandleSignature]['Count'] += 1;
+    }
+    else{
+        
+        candlePatterns[stCandleSignature] = {};
+    
+        if (nCandleReturn > 0) candlePatterns[stCandleSignature]['Ups'] = 1
+        else candlePatterns[stCandleSignature]['Ups'] = 0; 
+        
+        if (nCandleReturn <= 0) candlePatterns[stCandleSignature]['Downs'] = 1
+        else candlePatterns[stCandleSignature]['Downs'] = 0;
+        
+        candlePatterns[stCandleSignature]['Total'] = nCandleReturn;
+        candlePatterns[stCandleSignature]['Count'] = 1;
+    }
+    
+    if (getCurrentBarIndex() == -1)
+        processCandleReturns(fpRepMode);
+    
+    return stCandleSignature;
+}
+
+function calc_Range(xHigh, xLow){
+    
+    return xHigh.getValue(0) - xLow.getValue(0);
+}
+
+function processCandleReturns(stRepMode){
+    
+    var arrCandlePatterns = [];
+    
+    for (candle in candlePatterns){
+        candleMetric = candlePatterns[candle];
+        candleMetric['PctUp'] = candleMetric['Ups'] / candleMetric['Count'];
+        candleMetric['AvgReturn'] = candleMetric['Total'] / candleMetric['Count'];
+        candleMetric['Rank'] = candleMetric['PctUp'] * candleMetric['Ups'] * candleMetric['AvgReturn'];
+        
+        arrCandlePatterns.push([candle, candlePatterns[candle]]); 
+    }
+    
+    arrCandlePatterns.sort(function(a, b){ 
+        return a[1]['Rank'] - b[1]['Rank'];
+    });
+
+    fCandles.open("wt");
+    fCandles.writeln("Signature, Rank, Count, Ups, Downs, Total, AvgReturn, PctUp");
+
+    if (stRepMode == "Include the top and bottom 10 candles" && arrCandlePatterns.length > 20){
+        for (i = 0; i < 10; i++){
+            fCandles.writeln(arrCandlePatterns[i][0] + ", " +
+                             arrCandlePatterns[i][1]['Rank'] + ", " + 
+                             arrCandlePatterns[i][1]['Count'] + ", " +
+                             arrCandlePatterns[i][1]['Ups'] + ", " + 
+                             arrCandlePatterns[i][1]['Downs'] + ", " +
+                             arrCandlePatterns[i][1]['Total'] + ", " + 
+                             arrCandlePatterns[i][1]['AvgReturn'] + ", " +   
+                             arrCandlePatterns[i][1]['PctUp']);
+        }
+        for (i = arrCandlePatterns.length - 10; i < arrCandlePatterns.length; i++){
+            fCandles.writeln(arrCandlePatterns[i][0] + ", " +
+                             arrCandlePatterns[i][1]['Rank'] + ", " + 
+                             arrCandlePatterns[i][1]['Count'] + ", " +
+                             arrCandlePatterns[i][1]['Ups'] + ", " + 
+                             arrCandlePatterns[i][1]['Downs'] + ", " +
+                             arrCandlePatterns[i][1]['Total'] + ", " + 
+                             arrCandlePatterns[i][1]['AvgReturn'] + ", " +   
+                             arrCandlePatterns[i][1]['PctUp']);
+        }
+    }
+    else
+        for (i = 0; i < arrCandlePatterns.length; i++)
+            fCandles.writeln(arrCandlePatterns[i][0] + ", " +
+                             arrCandlePatterns[i][1]['Rank'] + ", " + 
+                             arrCandlePatterns[i][1]['Count'] + ", " +
+                             arrCandlePatterns[i][1]['Ups'] + ", " + 
+                             arrCandlePatterns[i][1]['Downs'] + ", " +
+                             arrCandlePatterns[i][1]['Total'] + ", " + 
+                             arrCandlePatterns[i][1]['AvgReturn'] + ", " +   
+                             arrCandlePatterns[i][1]['PctUp']); 
+    fCandles.close(); 
+}
+
+function verify(){
+    
+    var b = false;
+    if (getBuildNumber() < 779){
+        
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } 
+    else
+        b = true;
+    
+    return b;
+}

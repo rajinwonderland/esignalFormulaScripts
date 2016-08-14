@@ -1,0 +1,90 @@
+/*************************************
+Provided By:  
+    Novvum Consulting Group (2015) All rights reserved. The Oddball trading system was originally created by Mark Brown and has been interpreted to efs by Raj K Singh
+
+Description:        
+    Oddball-Signals by Raj K Singh
+
+Version:            1.00  11/17/2015
+
+Comments: 
+						OddBall is a SAR trading system that uses a 7 period ROC of the NYSE Advancing Issues to generate its signals. 
+
+An ROC of 3 or above issues a Buy and an ROC below 3 a Sell. The signals are computed on the hourly close.
+
+Time Template must be set to 09:00-16:00 EST for 60 minute charts of ES or SPY
+
+The OddBall-Signal.efs can be run as a standalone, however if one wants to see also a chart of the NYSE Advancing
+
+Issues and of the ROC plot one should also run the complementary scripts 
+
+OddBall-$ADV by Raj K Singh.efs and OddBall-RoC by Raj K Singh.efs.
+
+When the system is Long the chart background is colored in cyan and when Short in yellow.
+
+Blue bars indicate Long trades and red bars indicate Short trades.
+
+The entry price for the current trade is plotted on the bottom of the chart, centered to the bar that generates
+the signal and is colored in blue or red.
+
+This strategy is set to Buy/Sell on the Close of the bar that generates the signal as per the original OddBall strategy.
+
+This script also generates a sound alert, an Alert message and an email if desired. 
+
+Simply remove the // in front
+of the corresponding alerts in lines 59-61 and lines 70-72
+***************************************/
+
+var vLastAlert = -1;
+
+function preMain() {
+    setPriceStudy(true);
+    setStudyTitle("OddBall-Signals");
+    setColorPriceBars(true);
+    setComputeOnClose();
+}
+
+function main(nInputLength, nSymbol) {
+    if (nInputLength == null)
+        nInputLength = 7;
+    if (nSymbol == null)
+        nSymbol = "$ADV";
+    
+    var vClose = close(0, 1, nSymbol);
+    if (vClose == null)
+        return;
+        
+    var vClose1 = close(-nInputLength, 1, nSymbol);
+    if (vClose1 == null)
+        return;
+        
+    var OddBall = ((vClose - vClose1) / vClose) * 100;
+    
+    if (OddBall>3)
+        onAction1()
+    
+    else if (OddBall<3)
+        onAction2()
+        
+    return null; 
+}
+function onAction1() {
+        setChartBG(Color.cyan);
+        setPriceBarColor(Color.blue);
+        if (vLastAlert != 1) Strategy.doLong("", Strategy.CLOSE, Strategy.THISBAR, Strategy.DEFAULT, 0);
+        if (vLastAlert != 1) drawTextRelative(0, 1, close().toFixed(2), Color.white, Color.blue, Text.BOLD|Text.CENTER|Text.RELATIVETOBOTTOM, "MS Sans Serif", 10, 1);
+        //if (vLastAlert != 1) Alert.addToList( "ES #F", "Long  "+close(), Color.black, Color.blue )
+        //if (vLastAlert != 1) Alert.playSound( ding.wav )
+        //if (vLastAlert != 1) Alert.email( Long, OddBall )
+        vLastAlert = 1;
+}
+function onAction2() {
+        setChartBG(Color.yellow);
+        setPriceBarColor(Color.red);
+        if (vLastAlert != 2) Strategy.doShort("", Strategy.CLOSE, Strategy.THISBAR, Strategy.DEFAULT, 0);
+        if (vLastAlert != 2) drawTextRelative(0, 1, close().toFixed(2), Color.white, Color.red, Text.BOLD|Text.CENTER|Text.RELATIVETOBOTTOM, "MS Sans Serif", 10, 1);
+        //if (vLastAlert != 2) Alert.addToList( "ES #F", "Short  "+close(), Color.black, Color.blue )
+        //if (vLastAlert != 2) Alert.playSound( ding.wav )
+        //if (vLastAlert != 2) Alert.email( Short, OddBall )
+        vLastAlert = 2;
+}

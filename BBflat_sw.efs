@@ -1,0 +1,134 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2009. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    BBFlat SW
+Version:            1.0  08/26/2009
+ 
+Formula Parameters:                     Default:
+    Length                              9
+    Deviation                           1.5
+    Source of Price                     Close
+    MA Type                             SMA
+   
+Notes:
+    
+**********************************/
+var fpArray = new Array();
+var bInit = false;
+
+function preMain(){
+    setPriceStudy(false);
+    setShowCursorLabel(true);
+    setShowTitleParameters(false);
+    setStudyTitle("BBFlat SW");
+    setCursorLabelName("BBFlatP", 0);
+    setDefaultBarFgColor(Color.red, 0);
+    setPlotType(PLOTTYPE_LINE, 0);
+    setCursorLabelName("BBFlatM", 1);
+    setDefaultBarFgColor(Color.red, 1);
+    setPlotType(PLOTTYPE_LINE, 1);
+    setCursorLabelName("BBFlat", 2);
+    setDefaultBarFgColor(Color.green, 2);
+    setPlotType(PLOTTYPE_LINE, 2);
+    var x = 0;
+    fpArray[x] = new FunctionParameter("Length", FunctionParameter.NUMBER);
+    with(fpArray[x++]) {
+        setName("Length");
+        setLowerLimit(1);
+        setDefault(9);
+    }    
+    fpArray[x] = new FunctionParameter("Deviation", FunctionParameter.NUMBER);
+    with(fpArray[x++]) {
+        setName("Deviation");
+        setDefault(1.5);
+    }        
+    fpArray[x] = new FunctionParameter("sPrice", FunctionParameter.STRING);
+	with(fpArray[x++]){
+        setName("Source of Price");
+        addOption("open"); 
+        addOption("high");
+        addOption("low");
+        addOption("close");
+        addOption("hl2");
+        addOption("hlc3");
+        addOption("ohlc4"); 
+        setDefault("close"); 
+    }    
+    fpArray[x] = new FunctionParameter("sMAType", FunctionParameter.STRING);
+    with(fpArray[x++]) {
+        setName("MA Type");
+        addOption("sma");
+        addOption("ema");
+        addOption("wma");
+        addOption("vwma");
+        setDefault("sma");
+    }
+}
+
+var xBBFlatP = null;
+var xBBFlatM = null;
+var xBBFlat = null;
+
+function main(Length, Deviation, sPrice, sMAType) {
+var nBarState = getBarState();
+var nBBFlatP = 0;
+var nBBFlatM = 0;
+var nBBFlat = 0;
+    if (nBarState == BARSTATE_ALLBARS) {
+        if(Length == null) Length = 9;
+        if(Deviation == null) Deviation = 1.5;        
+        if(sPrice == null) sPrice = "close";
+        if(sMAType == null) sMAType = "sma";
+	}
+	if (bInit == false) {
+        addBand(0, PS_SOLID, 1, Color.black, "ZeroLine");
+        xBBFlatP = efsInternal("Calc_BBFlat", Length, Deviation, sPrice, sMAType)
+        xBBFlatM = getSeries(xBBFlatP, 1);
+        xBBFlat = getSeries(xBBFlatP, 2);
+        bInit = true;
+	}
+    nBBFlatP = xBBFlatP.getValue(0);
+    nBBFlatM = xBBFlatM.getValue(0);
+    nBBFlat = xBBFlat.getValue(0);
+	if (nBBFlatP == null || nBBFlat == null) return;
+    return new Array(nBBFlatP, nBBFlatM, nBBFlat);
+}
+
+var bSecondInit = false;
+var xPrice = null;
+var xMA = null;
+var xStdDev = null;
+
+function Calc_BBFlat(Length, Deviation, sPrice, sMAType) {
+var nStdP = 0;
+var nStdC = 0;
+    if (!bSecondInit) {
+        xPrice = eval(sPrice)();
+        xMA = eval(sMAType)(Length, xPrice);
+        xStdDev = efsInternal("Calc_StdDev", Length, xMA, xPrice);
+        bSecondInit = true;
+    }
+    nStdP = xStdDev.getValue(0);
+    if (nStdP == null) return;
+    nStdP = Deviation * nStdP;
+    nStdC = xPrice.getValue(0) - xMA.getValue(0);
+    return new Array(nStdP, -nStdP, nStdC);
+}
+
+function Calc_StdDev(LookBack, xPrice1Avg, xPrice1) {
+var nRes = 0;
+    if (xPrice1Avg.getValue(0) == null) return;
+    for (var i = 0; i < LookBack; i++) {
+        nRes += Math.pow(xPrice1.getValue(-i) - xPrice1Avg.getValue(0),2);
+    }
+    nRes = Math.sqrt(nRes / LookBack);
+    if (nRes == null) nRes = 1;
+    return nRes;
+}

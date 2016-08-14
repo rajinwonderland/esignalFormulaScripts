@@ -1,0 +1,124 @@
+/*********************************
+Provided by:
+Novvum Consulting Group LLC. This is a sample eSignal Formula Script (EFS) demonstrating the TD Sequential Setup (Intraday)
+
+Description:        
+    TD Sequential Setup (Intraday)
+	
+Version:            2.00  11/24/2015
+*****************************************
+
+Formula Parameters:                     Default:
+Price Source                            close
+Period                                  5
+Exhaustion Period                       9
+Buy Setup Color                         Color.blue
+Sell Setup Color                        Color.red
+
+
+
+Notes:
+	The related article TD Sequential Setup (Intraday) is an interpretation made by Raj K Singh on Thomas Demark's research and publications with the TD Sequential setup process. All rights reserved 2015
+
+**********************************/
+var fpArray = new Array();
+function preMain()
+{
+    setPriceStudy(true);
+    setPlotType(PLOTTYPE_LINE);
+    
+    var x = 0;
+    fpArray[x] = new FunctionParameter("gPS", FunctionParameter.STRING);
+    with (fpArray[x++])
+    {
+        setName("Price Source");
+        addOption("open");
+        addOption("close");
+        addOption("high");
+        addOption("low");
+        addOption("hl2");
+        addOption("hlc3");
+        addOption("ohlc4");
+        setDefault("close");
+    } 
+
+    fpArray[x] = new FunctionParameter("gPeriod", FunctionParameter.INTEGER);
+    with (fpArray[x++])
+    {
+        setName("Period");
+        setDefault(5);
+    } 
+
+    fpArray[x] = new FunctionParameter("gExhaustion", FunctionParameter.INTEGER);
+    with (fpArray[x++])
+    {
+        setName("Exhaustion Period");
+        setDefault(9);
+    } 
+    
+    fpArray[x] = new FunctionParameter("gSellCountdown", FunctionParameter.COLOR);
+    with (fpArray[x++])
+    {
+        setName("Sell Countdown");
+        setDefault(Color.blue);
+    } 
+    
+    fpArray[x] = new FunctionParameter("gBuyCountdown", FunctionParameter.COLOR);
+    with (fpArray[x++])
+    {
+        setName("Buy Countdown");
+        setDefault(Color.blue);
+    } 
+
+    
+}
+
+var bInit = false;
+var xSrc = null;
+var xMom = null;
+var xHH = null;
+var xLL = null;
+var counter = 0;
+function main(gPS, gPeriod, gExhaustion, gSellCountdown, gBuyCountdown)
+{
+        
+    if ( !bInit )
+    {
+        switch (gPS) 
+        {
+            case "Open"||"O": xSrc = open(); break;
+            case "High"||"H": xSrc = high(); break;    
+            case "Low"||"L" : xSrc = low();  break; 
+            case "hl2"||"hl/2" : xSrc = hl2(); break;  
+            case "hlc3"||"hlc/3" : xSrc = hlc3(); break; 
+            case "ohlc4"||"ohlc/4" : xSrc = ohlc4(); break; 
+            default : xSrc = close();  
+        }
+        xMom = mom(gPeriod, xSrc);
+        xHH = hhv(gExhaustion, xMom);    
+        xLL = llv(gExhaustion, xMom);    
+        bInit = true;
+    }
+    var vHH = xHH.getValue(0);
+    var vLL = xLL.getValue(0);
+    var vFlip = xMom.getValue(-gExhaustion);;
+
+    if ( xHH.getValue(0) == null ) return null;
+    
+    var retValue = "NEUTRAL";
+    var buySetup = vHH <= 0 && vFlip >= 0;
+    var sellSetup = vLL > 0 && vFlip <= 0;
+    var BarCount = getNumBars();
+    var rGen = Math.random();
+    if (sellSetup)
+    {
+        if (close() >= high(-2))
+        {
+            drawText("1", AboveBar1, Color.blue, null, rGen);
+            retValue = "Sell Setup";
+        }
+
+    }
+    return retValue;
+}
+    

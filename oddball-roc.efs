@@ -1,0 +1,59 @@
+/*************************************
+Provided By:  
+    Novvum Consulting Group (2015) 
+All rights reserved. This script was created by Raj K Singh to complement the OddBall trading system. Please see the Notes in OddBall-Signals.efs regarding the overall strategy.
+
+Description:        
+    Oddball-ROC by Raj K Singh
+
+Version:            1.00  11/17/2015
+
+Comments: This script plots the 7 period ROC of the NYSE Advancing Issues.
+The histogram base is set to 3 as per the original OddBall strategy.
+Bars above at or above 3 are plotted in blue, bars below 3 are plotted in red. The formula is the same as
+the one contained in OddBall-Signals.efs but is used here only to plot the ROC indicator.
+***************************************/
+
+var vLastAlert = -1;
+
+function preMain() {
+    setPriceStudy(false);
+    setStudyTitle("OddBall-ROC");
+    setCursorLabelName("$ADV(ROC)");
+    setPlotType(PLOTTYPE_HISTOGRAM, 0 );
+    setHistogramBase(3);
+    setDefaultBarThickness(2, 0);   
+}
+
+function main(nInputLength, nSymbol) {
+    if (nInputLength == null)
+        nInputLength = 7;
+    if (nSymbol == null)
+        nSymbol = "$ADV";
+    
+    var vClose = close(0, 1, nSymbol);
+    if (vClose == null)
+        return;
+        
+    var vClose1 = close(-nInputLength, 1, nSymbol);
+    if (vClose1 == null)
+        return;
+        
+    var OddBall = ((vClose - vClose1) / vClose) * 100;
+ 
+    if (OddBall>3)
+        onAction1()
+    
+    else if (OddBall<3)
+        onAction2()
+        
+    return OddBall;  
+}
+function onAction1() {
+        setBarFgColor(Color.blue);
+        vLastAlert = 1;
+}
+function onAction2() {
+        setBarFgColor(Color.red);
+        vLastAlert = 2;
+}

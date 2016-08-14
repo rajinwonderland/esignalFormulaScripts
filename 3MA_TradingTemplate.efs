@@ -1,0 +1,204 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright © 2013) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+
+Description:        
+    Swing trading with three indicators by Donald Pendergast
+    
+Version:            1.00  10/07/2013
+
+Formula Parameters:                     Default:
+Number of Ticks                         5
+EMA Length                              50
+Entry Long Position                     lime
+Entry Short Position                    red
+Exit Position                           paleyellow
+
+Notes:
+    The related article is copyrighted material. If you are not a subscriber
+    of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+
+var fpArray = new Array(); 
+
+function preMain()
+{
+    setStudyTitle("3MA_TradingTemplate");
+    setPriceStudy(true);
+    
+    setCursorLabelName("MA(high)", 0);
+    setCursorLabelName("MA(low)", 1);
+    setCursorLabelName("EMA", 2);
+    
+    setDefaultBarFgColor(Color.RGB(255, 155, 0), 0);
+    setDefaultBarFgColor(Color.red, 1);
+    setDefaultBarFgColor(Color.blue, 2);
+    
+    setDefaultBarThickness(2, 0);
+    setDefaultBarThickness(2, 1);
+    setDefaultBarThickness(2, 2);
+        
+    var x = 0;
+
+    fpArray[x] = new FunctionParameter("fpNumberTicks", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+        setName("Number of Ticks");
+        setLowerLimit(1);
+        setDefault(5);
+    }
+
+    fpArray[x] = new FunctionParameter("fpEMALength", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+        setName("EMA Length");
+        setLowerLimit(1); 
+        setDefault(50);
+    }
+
+    fpArray[x] = new FunctionParameter("fpEntryLongColor", FunctionParameter.COLOR);
+    with(fpArray[x++])
+    {
+        setName("Entry Long Position");    
+        setDefault(Color.lime);
+    } 
+    
+    fpArray[x] = new FunctionParameter("fpEntryShortColor", FunctionParameter.COLOR);
+    with(fpArray[x++])
+    {
+        setName("Entry Short Position");    
+        setDefault(Color.red);
+    }
+
+    fpArray[x] = new FunctionParameter("fpExitColor", FunctionParameter.COLOR);
+    with(fpArray[x++])
+    {
+        setName("Exit Position");    
+        setDefault(Color.paleyellow  );
+    }
+}
+
+var bInit = false;
+var bVersion = null;
+
+var xClose = null;
+var xOpen = null;
+var xHigh = null;
+var xLow = null;
+
+var xMA_highs = null;
+var xMA_lows = null;
+var xEMA = null;
+
+var nTick = 0;
+
+function main(fpNumberTicks, fpEMALength, fpEntryLongColor, fpEntryShortColor, fpExitColor) 
+{
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;
+        
+    if (!bInit)
+    {
+    	xClose = close();
+        xOpen = open();
+        xHigh = high();
+        xLow = low();
+        
+        xMA_highs = sma(5, xHigh);
+        xMA_lows = sma(5, xLow);
+        xEMA = ema(fpEMALength);
+        
+        nTick = getMinTick();
+                
+        bInit = true; 
+    }
+
+    var nClose = xClose.getValue(-1);
+    var nOpen = xOpen.getValue(0);
+    var nHigh = xHigh.getValue(0);
+    var nLow = xLow.getValue(0);
+
+    var nMA_highs = xMA_highs.getValue(0);
+    var nMA_lows = xMA_lows.getValue(0);
+    var nEMA = xEMA.getValue(0);
+
+    if (nMA_highs == null || nMA_lows == null || nEMA == null)
+        return;
+
+    if (getCurrentBarIndex() != 0) 
+    {
+        var bFStrategy = Strategy.isInTrade();
+        var bLStrategy = Strategy.isLong();
+        var bSStrategy = Strategy.isShort();
+        
+        var nLotSize = Strategy.getDefaultLotSize();
+        var nFillPrice = 0;
+       
+        if (!bFStrategy)
+        {
+            if ((nHigh > nMA_highs + (fpNumberTicks * nTick)) && (nClose > nEMA))
+            {
+                nFillPrice = Math.max(nOpen, nMA_highs + (fpNumberTicks * nTick));
+                Strategy.doLong("Enter Long", Strategy.STOP, Strategy.THISBAR, Strategy.DEFAULT, nFillPrice);
+                drawTextRelative(0, AboveBar3, "Enter Long", Color.black, fpEntryLongColor, Text.PRESET, null, null, getCurrentBarIndex()+"action");
+                drawTextRelative(0, AboveBar2, nLotSize + " @ " + formatPriceNumber(nFillPrice), Color.black, fpEntryLongColor, Text.PRESET, null, null, getCurrentBarIndex()+"price");
+                drawShapeRelative(0, AboveBar1, 10, null, Color.blue, Shape.PRESET, null); 
+            }
+            
+            if ((nLow < nMA_lows - (fpNumberTicks * nTick)) && (nClose < nEMA))
+            {
+                nFillPrice = Math.min(nOpen, nMA_lows - (fpNumberTicks * nTick));
+                Strategy.doShort("Enter Short", Strategy.STOP, Strategy.THISBAR, Strategy.DEFAULT, nFillPrice);
+                drawTextRelative(0, AboveBar3, "Enter Short", Color.black, fpEntryShortColor, Text.PRESET, null, null, getCurrentBarIndex()+"action");
+                drawTextRelative(0, AboveBar2, nLotSize + " @ " + formatPriceNumber(nFillPrice), Color.black, fpEntryShortColor, Text.PRESET, null, null, getCurrentBarIndex()+"price"); 
+                drawShapeRelative(0, AboveBar1, 10, null, Color.blue, Shape.PRESET, null);
+            }
+        }
+    
+        if ((bLStrategy) && (nLow < nMA_lows))
+        {
+            nFillPrice = Math.min(nOpen, nMA_lows);
+            Strategy.doSell("Exit Long", Strategy.STOP, Strategy.THISBAR, Strategy.DEFAULT, nFillPrice);
+            drawTextRelative(0, BelowBar2, "Exit Long", Color.black, fpExitColor, Text.PRESET, null, null, getCurrentBarIndex()+"action");
+            drawTextRelative(0, BelowBar3, nLotSize + " @ " + formatPriceNumber(nFillPrice), Color.black, fpExitColor, Text.PRESET, null, null, getCurrentBarIndex()+"price"); 
+            drawShapeRelative(0, BelowBar1, 9, null, Color.blue, Shape.PRESET, null); 
+        }
+        
+        if ((bSStrategy) && (nHigh > nMA_highs))
+        {
+            nFillPrice = Math.max(nOpen, nMA_highs);
+            Strategy.doCover("Exit Short", Strategy.STOP, Strategy.THISBAR, Strategy.DEFAULT, nFillPrice);
+            drawTextRelative(0, BelowBar2, "Exit Short", Color.black, fpExitColor, Text.PRESET, null, null, getCurrentBarIndex()+"action");
+            drawTextRelative(0, BelowBar3, nLotSize + " @ " + formatPriceNumber(nFillPrice), Color.black, fpExitColor, Text.PRESET, null, null, getCurrentBarIndex()+"price"); 
+            drawShapeRelative(0, BelowBar1, 9, null, Color.blue, Shape.PRESET, null); 
+        }
+    }
+
+    return [nMA_highs, nMA_lows, nEMA];
+}
+
+function verify() 
+{
+    var b = false;
+    if (getBuildNumber() < 779) 
+    {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } 
+    else 
+    {
+        b = true;
+    }
+
+    return b;
+}

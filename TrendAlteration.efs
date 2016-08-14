@@ -1,0 +1,97 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2009. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    Indicator of Trend Alteration
+    
+Version:            1.0  06/16/2009
+ 
+Formula Parameters:                     Default:
+    Trigger                             16
+    
+Notes:
+
+**********************************/
+var fpArray = new Array();
+var bInit = false;
+
+function preMain(){
+    setPriceStudy(false);
+    setShowCursorLabel(true);
+    setShowTitleParameters(false);
+    setStudyTitle("Trend Alteration");
+    setCursorLabelName("TAUp", 0);
+    setDefaultBarFgColor(Color.red, 0);
+    setPlotType(PLOTTYPE_HISTOGRAM, 0);
+    setDefaultBarThickness(2, 0);
+    setCursorLabelName("TADn", 1);
+    setDefaultBarFgColor(Color.blue, 1);
+    setPlotType(PLOTTYPE_HISTOGRAM, 1);
+    setDefaultBarThickness(2, 1);
+    var x = 0;
+    fpArray[x] = new FunctionParameter("Trigger", FunctionParameter.NUMBER);
+    with(fpArray[x++]) {
+        setLowerLimit(1);
+        setDefault(16);
+    }    
+}
+
+var xTAUp = null;
+var xTADn = null;
+
+function main(Trigger) {
+var nBarState = getBarState();
+var nTAUp = 0;
+var nTADn = 0;
+    if (nBarState == BARSTATE_ALLBARS) {
+        if(Trigger == null) Trigger = 16;
+	}
+	if (bInit == false) {
+        addBand(0, PS_SOLID, 1, Color.black, "Zero");	
+        xTAUp = efsInternal("Calc_TrendAlteration", Trigger);
+        xTADn = getSeries(xTAUp, 1);
+        bInit = true;
+	}
+    nTAUp = xTAUp.getValue(0);
+    nTADn = xTADn.getValue(0);    
+    if (nTAUp == null) return;
+	return new Array(nTAUp, nTADn);
+}
+
+var bSecondInit = false;
+var xHigh = null;
+var xLow = null;
+
+function Calc_TrendAlteration(Trigger) {
+var nRes1 = 0;
+var nRes2 = 0;
+var nPrice = 0;
+    if (bSecondInit == false) {
+        xHigh = high();
+        xLow = low();
+        bSecondInit = true;
+    }
+    if (xHigh.getValue(-Trigger) == null) return;
+    nPrice = xHigh.getValue(0);
+    if (nPrice > xHigh.getValue(-1)) {
+        nRes1 = 1;
+        while (nPrice > xHigh.getValue(-nRes1) && nRes1 < Trigger) {
+            nRes1++; 
+        }
+    }
+    nPrice = xLow.getValue(0);
+    if (nPrice < xLow.getValue(-1)) {
+        nRes2 = 1;
+        while (nPrice < xLow.getValue(-nRes2) && nRes2 < Trigger) {
+            nRes2++; 
+        }
+        nRes2 = -nRes2;
+    }
+    return new Array(nRes1, nRes2);
+}

@@ -1,0 +1,133 @@
+/*********************************
+Provided By:  
+    eSignal (Copyright c eSignal), a division of Interactive Data 
+    Corporation. 2009. All rights reserved. This sample eSignal 
+    Formula Script (EFS) is for educational purposes only and may be 
+    modified and saved under a new file name.  eSignal is not responsible
+    for the functionality once modified.  eSignal reserves the right 
+    to modify and overwrite this EFS file with each new release.
+
+Description:        
+    The Pivot Detector Oscillator, by Giorgos E. Siligardos
+
+Version:            1.0  07/07/2009
+
+Formula Parameters:                     Default:
+    MA Length                           200
+    RSI Length                          14
+    Upper Band                          100
+    Lower Band                          0
+    
+Notes:
+    The related article is copyrighted material. If you are not a subscriber
+    of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+var fpArray = new Array();
+var bInit = false;
+var bVersion = null;
+
+function preMain() {
+    setPriceStudy(true);
+    setShowCursorLabel(false);
+    setShowTitleParameters(false);
+    setStudyTitle("Pivot Detector Oscillator Arrows");
+    askForInput();
+    var x=0;
+    fpArray[x] = new FunctionParameter("Length_MA", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("MA Length");
+        setLowerLimit(1);		
+        setDefault(200);
+    }
+    fpArray[x] = new FunctionParameter("Length_RSI", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("RSI Length");
+        setLowerLimit(1);		
+        setDefault(14);
+    }    
+    fpArray[x] = new FunctionParameter("UpBand", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("Upper Band");
+        setLowerLimit(0);		
+        setDefault(100);
+    }    
+    fpArray[x] = new FunctionParameter("DnBand", FunctionParameter.NUMBER);
+	with(fpArray[x++]){
+        setName("Lower Band");
+        setLowerLimit(-31);		
+        setDefault(0);
+    }        
+}
+
+var xPIDosc = null;
+
+function main(Length_MA, Length_RSI, UpBand, DnBand) {
+var nBarState = getBarState();
+var nPIDosc = 0;
+var nPIDosc1 = 0;
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;   
+    if (nBarState == BARSTATE_ALLBARS) {
+        if (Length_MA == null) Length_MA = 200;
+        if (Length_RSI == null) Length_RSI = 14;
+        if (UpBand == null) UpBand = 100;
+        if (DnBand == null) DnBand = 0;
+    }    
+    if (!bInit) { 
+        xPIDosc = efsInternal("PIDosc", Length_MA, Length_RSI);
+        bInit = true; 
+    }
+    nPIDosc = xPIDosc.getValue(0);
+    nPIDosc1 = xPIDosc.getValue(-1);
+    if (nPIDosc1 == null) return;
+    if (nPIDosc > DnBand && nPIDosc1 < DnBand ) {
+        drawShape(Shape.UPARROW,  BelowBar2, Color.green);
+    }
+    if (nPIDosc < UpBand && nPIDosc1 > UpBand ) {
+        drawShape(Shape.DOWNARROW,  AboveBar2, Color.red);
+    }
+    return;
+}
+
+var bSecondInit = false;
+var xMA = null;
+var xRSI = null;
+
+function PIDosc(Length_MA, Length_RSI) {
+var nRes = 0;
+var nMA = 0;
+var nRSI = 0;
+var nClose = close(0);
+    if (!bSecondInit) { 
+        xMA = sma(Length_MA);
+        xRSI = rsi(Length_RSI);
+        bSecondInit = true; 
+    }
+    nMA = xMA.getValue(0);
+    nRSI = xRSI.getValue(0);
+    if (nMA == null || nRSI == null) return;
+    if (nClose > nMA) {
+        nRes = (nRSI - 35) / (85 - 35);
+    }
+    if (nClose <= nMA) {
+        nRes = (nRSI - 20) / (70 - 20);
+    }    
+    return nRes * 100;
+}
+
+function verify() {
+    var b = false;
+    if (getBuildNumber() < 779) {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } else {
+        b = true;
+    }
+    return b;
+}

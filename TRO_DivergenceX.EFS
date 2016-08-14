@@ -1,0 +1,469 @@
+/****
+
+TRO_DivergenceX 5:18 PM 9/2/2006
+
+Modifying Programmer:  Avery T. Horton, Jr.  aka TheRumpledOne, 
+  
+DONATIONS AND GIFTS ACCEPTED 
+
+P O BOX 43575, TUCSON, AZ 85733 
+
+please include this and/or any other comment blocks and a 
+description of any changes you make.
+
+Copyright 2006, All Rights Reserved. Code may be modified for 
+personal use only. No portion of this code can be sold or
+otherwise redistributed without the express written consent of
+the author, Avery T. Horton, Jr.
+
+
+ATTN ESIGNAL: I DID NOT POST THIS CODE ON YOUR FORUM
+              I AM NOT RESPONSIBLE FOR ANY ESIGNAL FORUM RULE VIOLATIONS.
+
+****/
+
+
+/********************************************************************
+Title:		Divergence Detector Script for eSignal 7.x
+By:         Chris D. Kryza (Divergence Software, Inc.)
+Email:      c.kryza@gte.net
+Incept:     02/17/2003
+Version:    1.1.0
+
+
+=====================================================================
+Fix History:
+
+11/06/2003 - 	Added menu so user can select study to use.
+1.1.0
+
+02/17/2003 -   	Initial Release
+1.0.0
+
+=====================================================================
+Project Description:   
+
+This script will take a look at the last two pivot points in the 
+price data series and in an indicator data series. If there is a 
+divergence between the two, it will draw a line in the indicator 
+pane highlighting the divergence. The script currently allows you
+to select from RSI, CCI and Stochastics.
+
+=====================================================================
+
+Various parameters can be adjusted via the eSignal Edit Studies option:
+
+				
+Study To Use:	Select the study that you wish to use. Choices
+				are RSI, CCI and Slow Stochastic.											
+
+Dislaimer: For educational purposes only! Obviously, no guarantees 
+whatsoever and use at your own risk.
+
+**********************************************************************/
+
+
+//Global Variables
+var grID                = 0;
+var study1 				= null;
+var sStudyString		= null;
+var PPPrice				= 0;						//holds the price type of the pivot we have found (0=low, 1=high)
+var bInitStudy			= false;
+var bInitialized		= false;
+var aFPArray			= new Array();
+
+
+
+// BUTTON CODE
+
+var bEdit = true;
+var nFontCY = 0;
+var nFontCX = 0;
+var nColWidth	= 0;
+var nRowThickness = 1;
+var nFontSize   = 10;
+var sStr;
+var tStr;
+
+//== PreMain function required by eSignal to set things up
+function preMain() {
+var x;
+
+    setPriceStudy(false);
+    setStudyTitle("TRO_");
+
+    setShowTitleParameters( false );
+
+    //setComputeOnClose();
+    
+    setDefaultBarFgColor( Color.blue, 0 );
+    setDefaultBarFgColor( Color.red,  1 );
+    
+
+// BUTTON CODE
+
+    var iButtonX = new FunctionParameter("iButtonX", FunctionParameter.NUMBER);
+	iButtonX.setDefault( 5 ); 
+
+    var iButtonY = new FunctionParameter("iButtonY", FunctionParameter.NUMBER);
+	iButtonY.setDefault( 50 ); 
+
+    var iFontSize = new FunctionParameter("iFontSize", FunctionParameter.NUMBER);
+        iFontSize.setName("Button Font Size");
+	iFontSize.setDefault( 10 ); 
+
+
+
+    grID = 0;
+	aFPArray[x] = new FunctionParameter( "frStudy", FunctionParameter.STRING);
+	with( aFPArray[x] ) {
+	setName( "Study To Use" );
+        addOption("accDist()");   
+        addOption("adx(10,5)");  
+        addOption("pdi(10,5)");
+        addOption("ndi(10,5)");
+        addOption("cci(10)");
+        addOption("chop(10)");
+        addOption("ema(10)");
+        addOption("sma(10)");
+        addOption("wma(10)");
+        addOption("hhv( 50, high() )");
+        addOption("hl2()");    
+        addOption("hl3()");  
+        addOption("ohlc4() ");
+        addOption("llv( 50, low() )");
+        addOption("macd( 12, 26, 9 )");  
+        addOption("macdSignal( 12, 26, 9 )");  
+        addOption("macdHist( 12, 26, 9 )");  
+        addOption("upperBB( 20, 2 )");  
+        addOption("middleBB( 20, 2 )");  
+        addOption("lowerBB( 20, 2 )");  
+        addOption("upperDonchian( 20 )");  
+        addOption("middleDonchian( 20 )");  
+        addOption("lowerDonchian( 20 )");  
+        addOption("upperEnv( 20, false, 10 )");  
+        addOption("middleEnv( 20, false, 10 )");  
+        addOption("upperEnv( 20, false, 10 )");  
+        addOption("upperLinearReg( 20, 2 ) ");  
+        addOption("middleLinearReg( 20, 2 ) ");  
+        addOption("lowerLinearReg( 20, 2 ) "); 
+        addOption("midpoint( 50, close() )");  
+        addOption("moneyFlow( 20 )");
+        addOption("mom( 20 ) ");
+        addOption("oi(0)");
+        addOption("osc( 10, 21, false )");
+        addOption("percentR( 10 )");
+        addOption("roc( 20 )");
+        addOption("rsi( 14 )");
+        addOption("sar( 0.02, 0.02, 0.2 )");
+        addOption("stochK( 14, 1, 3 )");
+        addOption("stochD( 14, 1, 3 ) ");
+        addOption("volume(0)");
+        setDefault("rsi(2)"  );
+	}          
+
+}
+
+ askForInput();
+
+//== Main processing function
+function main( frStudy  , iFontSize, iButtonX, iButtonY) {
+     
+    
+
+
+// BUTTON CODE
+
+  // initialize upon first loading formula
+    if(getBarState() == BARSTATE_ALLBARS) {
+
+    	
+//clear our workspace   
+     	clearLines();
+     	clearText(); 
+
+        drawTextPixel(iButtonX, iButtonY, " TRO_DivergenceX @URL=EFS:editParameters", Color.white, Color.green, 
+            Text.RELATIVETOLEFT|Text.RELATIVETOBOTTOM|Text.ONTOP|Text.BOLD|Text.BUTTON, 
+            "Comic Sans MS", 13, "UpExp"); 
+   
+        return null;
+    }
+    
+
+var x;
+var nPiv1, nPiv2;
+var nVal1, nVal2;
+var nSVal1, nSVal2;
+var nStudyValue;
+   
+	if ( bInitialized == false ) {
+
+    		setStudyTitle( "TRO_DivergenceX " + frStudy );
+    		study1 = efsInternal( "fEVAL", frStudy  ); 
+                setCursorLabelName(frStudy, 0);
+//    		sStudyString = 0;
+		bInitialized = true;
+	}      
+      
+   
+    //get current value of our study which we will return to the study pane 
+    //regardless of what else happens
+
+//    nStudyValue = study1.getValue( sStudyString );
+
+    nStudyValue = study1.getValue( 0);
+ 
+    
+    
+    //Find the most recent pivots and look for a divergence
+    if (( getCurrentBarIndex() > -1 ) && ( getBarState()==BARSTATE_NEWBAR ) )  {
+    
+    
+    	nOffset = 0;
+
+    	nPiv1 = -1;
+    
+	    //first, see if we have a potential high or low pivot forming based on
+    	//the most recent 2 or 3 bars. If so, then we will use this point as our
+    	//first pivot and we will work back from there.
+    
+	    //see if we have a potential low pivot forming
+    	if ( ( low(nOffset-1)<low(nOffset) ) &&  ( low(nOffset-1) < Math.min(low(nOffset-2), low(nOffset-3), low(nOffset-4)) )) {
+    		nPiv1 = 1;
+    		PPPrice = 0;
+    	}
+    	//see if we have a potential high pivot forming
+    	else if ( ( high(nOffset-1)>high(nOffset) ) &&  ( high(nOffset-1) > Math.max(high(nOffset-2), high(nOffset-3), high(nOffset-4)) )) {
+    		nPiv1 = 1;
+    		PPPrice = 1;
+    	}
+    	//just try to find any pivot in the last few bars
+    	else {
+    		nPiv1 = findPivot( Math.abs(nOffset), 0, true );
+    	}
+    	//nPiv1 is -1 on error or data not found.
+    	//just bail if this happens.
+    	if ( nPiv1 == -1 ) return( nStudyValue );
+    	  
+    	//was it a high pivot we found
+    	if (PPPrice==1) {
+    		nVal1 = high( -nPiv1 );
+    		//get the next high price pivot
+    		nPiv2 = findPivot( nPiv1+1, 1, false );
+    		nVal2 = high( -nPiv2 );
+    		//now get the study values at these points
+    		
+    		nSVal1 = study1.getValue(sStudyString, -nPiv1);
+    		nSVal2 = study1.getValue(sStudyString, -nPiv2);
+    	
+			//if a divergence, draw it
+    		if ((nVal1 >= nVal2) && (nSVal1 < nSVal2)) {
+    			//Bearish Divergence - CCI (nSVal2) must be LT 150
+//    			if (nSVal1<150) //--remove this line if not using CCI
+    				drawLineRelative(-nPiv1, nSVal1, -nPiv2, nSVal2, PS_SOLID, 2, Color.red, gID());
+    		}
+    		else if ((nVal1 <= nVal2) && (nSVal1 > nSVal2)) {
+    			//Bullish Divergence - CCS (nsVal2) must be GT -150
+//    			if (nSVal1>-150) //-- remove this line if not using CCI
+    				drawLineRelative(-nPiv1, nSVal1, -nPiv2, nSVal2, PS_SOLID, 2, Color.green, gID());
+    		}
+    	}
+    	//or a low pivot?
+		else {
+    		nVal1 = low( -nPiv1 );
+    		//get the next low price pivot
+    		nPiv2 = findPivot( nPiv1+1, -1, false );
+    		nVal2 = low( -nPiv2 );
+    		//now get the study values at these points
+    		nSVal1 = study1.getValue(sStudyString, -nPiv1);
+    		nSVal2 = study1.getValue(sStudyString, -nPiv2); 
+    		
+   	
+    		//if a divergence, draw it
+    		if ((nVal1 >= nVal2) && (nSVal1 < nSVal2)) {
+    			//Bearish Divergence - CCI (nsVal2) must be LT 150
+//    			if (nSVal2 < 150) //-- remove this line if not using CCI
+    				drawLineRelative(-nPiv1, nSVal1, -nPiv2, nSVal2, PS_SOLID, 2, Color.red, gID());
+    		}
+    		else if ((nVal1 <= nVal2) && (nSVal1 > nSVal2)) {
+    			//Bullish Divergence - CCI (nsVal2) must be GT -150
+//    			if (nSVal2 > -150) //-- remove this line if not using CCI
+    				drawLineRelative(-nPiv1, nSVal1, -nPiv2, nSVal2, PS_SOLID, 2, Color.green, gID());
+    		}    	
+    	  
+    	}
+
+		if (PPPrice==1) {
+			drawTextRelative(-nPiv1, nSVal1, "D", Color.green, null, Text.ONTOP | Text.BOTTOM | Text.CENTER, null, 10, gID() );
+			drawTextRelative(-nPiv2, nSVal2, "D", Color.green, null, Text.ONTOP | Text.BOTTOM | Text.CENTER, null, 10, gID() );
+		}
+		if (PPPrice==0) {
+			drawTextRelative(-nPiv1, nSVal1, "D", Color.maroon, null, Text.ONTOP | Text.TOP | Text.CENTER, null, 10, gID() );
+			drawTextRelative(-nPiv2, nSVal2, "D", Color.maroon, null, Text.ONTOP | Text.TOP | Text.CENTER, null, 10, gID() );			
+		}
+
+
+    	//p( "0-bar", low(0) );
+   	//p( "Piv1", nPiv1 );
+      	//p( "pr1", nVal1 );
+      	//p( "Piv2", nPiv2 );
+      	//p( "pr2", nVal2 );
+    }
+    
+
+//  debugPrint( "nStudyValue        : " + nStudyValue  + "\n" );
+
+    return( nStudyValue );
+
+}
+
+
+
+ 
+function fEVAL( x) { 
+   return( eval(x) ); 
+} 
+
+
+// BUTTON CODE
+
+function editParameters() {
+    askForInput("TRO_DivergenceX ");
+    return;
+}
+
+
+//==This is simply an adaptation of the findPivot function that I have used
+//== in other scripts. Our usage here will be to scan backwards to find the
+//== pivots we need in the price series.
+function findPivot( nCurOffset, nDataKind, bRelax ) {
+var x,y;
+var nLvls;
+var nPivot;
+var vH,vL;    
+var lB;
+var nPad;
+
+	//== nCurOffset is the offset from current bar where we want to start scanning
+	//== nDataKind: 0=find any pivot, 1=find next high pivot, -1=find next low pivot
+	//== bRelax: true=look for a semi-pivot of 1 bar, false=look for regular pivot
+
+    //define size of a pivot (x-bars on either side lower or higher)
+    if (bRelax==false) {
+    	nPivot = 4;
+    }
+    else {
+    	nPivot = 2;
+    }
+    
+    //scan backwards for pivots
+    if ( 1 == 1 ) {
+        lB = 100;
+    
+        
+        //scan price series
+       	vH  = getValue("High", -nCurOffset, -(lB));
+       	vL  = getValue("Low",  -nCurOffset, -(lB));  
+       	if (vH==null) return( -1 );
+
+    
+        x=0;
+        while(x<lB) {
+            if (x>nPivot+1) {
+               //we are scanning price data
+       
+               	if (nDataKind <=0) {
+               		nLvls = 0;
+               		for(y=0; y<nPivot; y++) {
+                		if (vL[x-y]>vL[x-nPivot]) nLvls++;
+                		if (vL[x-(y+(nPivot+1))]>=vL[x-nPivot]) nLvls++;
+               		}
+               			
+           			if (nLvls>((nPivot*2)-1)) {
+               			PPPrice = 0;
+               			return( (x-nPivot)+nCurOffset );
+       				}
+           		}
+           		if (nDataKind >=0) {
+           			nLvls = 0;
+           			for(y=0; y<nPivot; y++) {
+               			if (vH[x-y]<vH[x-nPivot]) nLvls++;
+               			if (vH[x-(y+(nPivot+1))]<=vH[x-nPivot]) nLvls++;
+           			}
+       				if (nLvls>((nPivot*2)-1)) {
+           				PPPrice = 1;
+           				return( (x-nPivot)+nCurOffset );
+       				}
+           		}
+            }
+            x++;
+        }
+    }
+    
+  
+    return (-1);
+}
+
+
+
+
+
+
+/*************************************************
+             SUPPORT FUNCTIONS                    
+**************************************************/    
+
+function p( a, b ) {
+	debugPrint( a + ": " + b + "\n" );
+	return;
+}
+    
+//== gID function assigns unique identifier to graphic/text routines
+function gID() {
+    grID ++;
+    return( grID );
+}
+
+
+//== displayError function displays an error to the user
+function displayError( ErrStr ) {
+  	clearText();
+    drawTextRelative(20, 50, ErrStr, Color.maroon, Color.lightgrey,  Text.FRAME | Text.ONTOP | Text.RELATIVETOLEFT | Text.RELATIVETOBOTTOM, null, 16, gID());    
+}
+
+//== SortMe function sorts an array in ascending order
+function SortMe( arg1, arg2 ) {
+         if (arg1<arg2) {
+            return( -1 )
+         }
+         else {
+              return( 1 );
+         }
+}
+
+//==fmt will truncate the degrees value for display purposes.
+function fmt( value ) {
+    var tmp;
+    
+    tmp = value;
+    
+    value = Math.abs( value );
+    value = Math.round( value );
+    if (tmp<0) value = 0-value;
+    return( value );
+}    
+
+//==rnd will round to N digits.
+function rnd(value, N) {
+    var n;
+    var mult=1;
+    for(n=0;n<N;n++) mult*=10;
+    value*=mult;
+    return Math.round( value,N)/mult;
+}
+
+//== Frac functions returns the fractional portion of a real number
+function Frac( iVal ) {
+    var x = Math.floor( iVal );
+    return( iVal - x );
+}  

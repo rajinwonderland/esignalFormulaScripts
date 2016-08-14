@@ -1,0 +1,114 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright © 2014) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release. 
+
+Description:        
+    Price Projections by Sylvain Vervoort
+    
+Version:            1.00  09/04/2014
+
+Notes:
+    The related article is copyrighted material. If you are not a subscriber
+    of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+
+function preMain(){
+    
+    setPriceStudy(true);
+    setStudyTitle("SVEPivotsUtcRt");
+    
+    setCursorLabelName("PH", 0);
+    setCursorLabelName("PL", 1);
+    setCursorLabelName("PP", 2);
+    setCursorLabelName("R1", 3);
+    setCursorLabelName("R2", 4);
+    setCursorLabelName("R3", 5);
+    setCursorLabelName("S1", 6);
+    setCursorLabelName("S2", 7);
+    setCursorLabelName("S3", 8);
+    
+    setDefaultBarFgColor(Color.RGB(0x4B,0x9B,0x4B), 0);
+    setDefaultBarFgColor(Color.RGB(0x9B,0x4B,0xFF), 1);
+    setDefaultBarFgColor(Color.RGB(0x9B,0x9B,0x9B), 2);
+    setDefaultBarFgColor(Color.RGB(0x00,0x00,0xFF), 3);
+    setDefaultBarFgColor(Color.RGB(0x32,0x7D,0xFF), 4);
+    setDefaultBarFgColor(Color.RGB(0x00,0xFF,0xFF), 5);
+    setDefaultBarFgColor(Color.RGB(0xFF,0x65,0x00), 6);
+    setDefaultBarFgColor(Color.RGB(0xFF,0x94,0x00), 7);
+    setDefaultBarFgColor(Color.RGB(0xFF,0xC8,0x00), 8);
+    
+    setDefaultBarStyle(PS_SOLID, 0);
+    setDefaultBarStyle(PS_SOLID, 1);
+    setDefaultBarStyle(PS_DASH, 2);
+    setDefaultBarStyle(PS_DASH, 3);
+    setDefaultBarStyle(PS_DASH, 4);
+    setDefaultBarStyle(PS_DASH, 5);
+    setDefaultBarStyle(PS_DASH, 6);
+    setDefaultBarStyle(PS_DASH, 7);
+    setDefaultBarStyle(PS_DASH, 8);
+}
+
+var bInit = false;
+var bVersion = null;
+
+var xHigh  = null;
+var xLow   = null;
+var xClose = null; 
+
+function main(){
+    
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;
+
+    if(isMonthly() || isWeekly())
+        return;
+    
+    if(bInit == false){
+        xHigh  = high(inv("D"));
+        xLow   = low(inv("D"));
+        xClose = close(inv("D")); 
+        bInit = true;
+    }
+    
+    var vHigh  = xHigh.getValue(-1);
+    var vLow   = xLow.getValue(-1);
+    var vClose = xClose.getValue(-1); 
+    
+    if(vHigh == null || vLow == null || vClose == null)
+        return;
+    
+    var vPP = (vHigh + vLow + vClose) / 3;
+    var vR1 = 2*vPP - vLow;
+    var vS1 = 2*vPP - vHigh;
+    var vR2 = vPP + (vHigh - vLow);
+    var vS2 = vPP - (vHigh - vLow);
+    var vR3 = 2*vPP + (vHigh - 2*vLow);
+    var vS3 = 2*vPP - (2*vHigh - vLow); 
+    
+    return [vHigh, vLow, vPP, vR1, vR2, vR3, vS1, vS2, vS3];
+}
+
+function verify(){
+    
+    var b = false;
+    
+    if (getBuildNumber() < 779){
+        
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } 
+    else 
+        b = true;
+    
+    return b;
+}

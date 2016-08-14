@@ -1,0 +1,62 @@
+var bVersion = null;
+var fpArray = new Array();
+function preMain()
+{
+    setPriceStudy(true);
+    setPlotType(PLOTTYPE_LINE);
+    
+    var x = 0;
+    fpArray[x] = new FunctionParameter("gPS", FunctionParameter.STRING);
+    with (fpArray[x++])
+    {
+        setName("Price Source");
+        setDefault("close");
+    } 
+
+    fpArray[x] = new FunctionParameter("gPeriod", FunctionParameter.INTEGER);
+    with (fpArray[x++])
+    {
+        setName("Period");
+        setDefault(5);
+    } 
+
+    fpArray[x] = new FunctionParameter("gExhaustion", FunctionParameter.INTEGER);
+    with (fpArray[x++])
+    {
+        setName("Exhaustion Period");
+        setDefault(9);
+    } 
+    
+    fpArray[x] = new FunctionParameter("gBuyColor", FunctionParameter.COLOR);
+    with (fpArray[x++])
+    {
+        setName("Buy Setup Color");
+        setDefault(Color.green);
+    } 
+    
+    fpArray[x] = new FunctionParameter("gSellColor", FunctionParameter.COLOR);
+    with (fpArray[x++])
+    {
+        setName("Sell Setup Color");
+        setDefault(Color.red);
+    } 
+
+    
+}
+
+function main (gPS, gPeriod, gExhaustion, gBuyColor, gSellColor)
+{
+    for (x=1; x<=gExhaustion; x++)
+    {
+        var xBars = close(x);
+        var xRef = close(x-4);
+        var buyCon = xBars < xRef; 
+        if (buyCon == 9);
+        {
+            var rTags = Math.random();
+            drawTextRelative(-x, low(-x)*.99, "" + (9-x), gBuyColor, null, Text.BOTTOM, "Arial", 12, rTags);
+        }
+    }
+
+
+}

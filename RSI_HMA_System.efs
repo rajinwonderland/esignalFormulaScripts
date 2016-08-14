@@ -1,0 +1,173 @@
+/*********************************
+Provided By:  
+    Interactive Data Corporation (Copyright © 2010) 
+    All rights reserved. This sample eSignal Formula Script (EFS)
+    is for educational purposes only. Interactive Data Corporation
+    reserves the right to modify and overwrite this EFS file with 
+    each new release.  
+
+Description:        
+    Trading Indexes With The Hull Moving Average
+
+Version:            1.0  13/10/2010
+
+Formula Parameters:                     Default:
+    HMA Period                              9
+    Period HMA for checking TurnUP      	4
+    SMA Period                              50
+
+Notes:
+	The related article is copyrighted material. If you are not
+	a subscriber of Stocks & Commodities, please visit www.traders.com.
+
+**********************************/
+var fpArray = new Array();
+var bVersion = null;
+function preMain()
+{
+    setPriceStudy(true);
+    setStudyTitle("RSI_HMA_System");
+
+    var x=0;
+    fpArray[x] = new FunctionParameter("gPeriod", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+        setName("HMA Period");
+        setLowerLimit(1);
+        setDefault(9);
+    }
+    fpArray[x] = new FunctionParameter("gTurnUpPeriod", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+        setName("Period HMA for checking TurnUP");
+        setLowerLimit(1);
+        setDefault(4);
+    }
+    fpArray[x] = new FunctionParameter("gSMAPeriod", FunctionParameter.NUMBER);
+    with(fpArray[x++])
+    {
+        setName("SMA Period");
+        setLowerLimit(1);
+        setDefault(50);
+    }
+}  
+
+var xCls = null; 
+var xHMA = null;
+var xHMA4 = null; 
+var xRSI = null;
+var xSMA = null;
+var bInit = false;
+var Pos = 0;
+var valueBuy = 0;
+var valueSell = 0;
+var valueProfit = 0;
+function main(gPeriod, gTurnUpPeriod, gSMAPeriod)
+{
+    var nBarState = getBarState();
+    if (bVersion == null) bVersion = verify();
+    if (bVersion == false) return;   
+    if (nBarState == BARSTATE_ALLBARS) {
+        if (gPeriod == null) gPeriod = 9;
+        if (gTurnUpPeriod == null) gTurnUpPeriod = 4;
+        if (gSMAPeriod == null) gSMAPeriod = 50;
+    }    
+    
+    if (!bInit)
+    {
+        xCls = close(); 
+        xOpn = open();
+        xHMA = efsInternal("calcHullMA",gPeriod,xCls);
+        xHMA4 = efsInternal("calcHullMA",gTurnUpPeriod,xCls); 
+        xRSI = rsi(gPeriod,xHMA);
+        xSMA = sma(gSMAPeriod, xCls);
+        bInit = true;
+    }
+
+    var  vRSI = xRSI.getValue(-1);
+    var  vRSIPrev = xRSI.getValue(-2);
+    var  vCls = xCls.getValue(-1);
+    var  vSMA = xSMA.getValue(-1);
+    var  vHMA4Prv = xHMA4.getValue(-2);
+    var  vHMA4Cur = xHMA4.getValue(-1);
+    var  vHMA4Nxt = xHMA4.getValue(0);
+    var  vClsPast = xCls.getValue(-60);
+    
+    var  vOpn = xOpn.getValue(0);
+    var  vRSICur = xRSI.getValue(0);
+    
+    if (vRSI == null || vClsPast ==null) return null;
+    
+    if (Strategy.isLong())
+    {
+        if (vRSI>=90)
+        {
+            valueSell = (Math.round(vOpn*100))/100;
+            valueProfit = (Math.round((valueSell - valueBuy)*100))/100;
+            drawShapeRelative(0, AboveBar1,  Shape.DOWNTRIANGLE, null, Color.red, Shape.PRESET, "sell"+Pos);
+            drawTextRelative(0, AboveBar4, "Sell "+Pos+" @ "+valueSell, Color.white, Color.red, Text.PRESET | Text.CENTER, "Arial", 10, "stext1_"+Pos);
+            drawTextRelative(0, AboveBar3, " "+valueProfit, Color.white, Color.green, Text.PRESET | Text.CENTER, "Arial", 10, "stext2_"+Pos);
+            Strategy.doSell("Long Exit Signal", Strategy.MARKET, Strategy.THISBAR);
+        }        
+    }
+    else
+    {
+        if (vCls>=vSMA && vHMA4Prv>=vHMA4Cur && vHMA4Cur<=vHMA4Nxt && vRSIPrev<=50 && vCls>=vClsPast)
+        { 
+            Pos++;
+            valueBuy = (Math.round(vOpn*100))/100;
+            drawShapeRelative(0, BelowBar1,  Shape.UPARROW, null, Color.blue, Shape.PRESET, "buy"+Pos);
+            drawTextRelative(0, BelowBar4, "Buy "+Pos+" @ "+valueBuy, Color.white, Color.blue, Text.PRESET | Text.CENTER, "Arial", 10, "btext"+Pos);
+            Strategy.doLong("Entry Long", Strategy.MARKET, Strategy.THISBAR);
+        }
+    }
+        
+    if(Strategy.isLong()) setBarBgColor(Color.yellow);       
+}
+
+hullMAInit = false;
+var xFastWMA = null;
+var xSlowWMA = null;
+var xHMAArg = null;
+var xHMA = null;
+function calcHullMA(HMAPeriod, xCls)
+{
+    if(getCurrentBarCount() <= HMAPeriod) return;
+
+    if (!hullMAInit)
+    {
+        xFastWMA = wma(Math.floor(HMAPeriod/2),xCls);
+        xSlowWMA = wma(HMAPeriod,xCls);
+        xHMAArg = efsInternal("calcHMAArg", xSlowWMA, xFastWMA);
+        xHMA = wma(Math.floor(Math.sqrt(HMAPeriod)),xHMAArg);
+        hullMAInit = true;
+    }
+    var vHMA = xHMA.getValue(0);
+    if (vHMA == null) return ;
+
+    return  vHMA;
+}    
+
+function calcHMAArg(xSlowWMA, xFastWMA)
+{
+    var vSlowVMA = xSlowWMA.getValue(0);
+    var vFastVMA = xFastWMA.getValue(0);
+    if (vSlowVMA == null) return;
+    return 2*vFastVMA - vSlowVMA;
+}
+
+function verify() {
+    var b = false;
+    if (getBuildNumber() < 779) {
+        drawTextAbsolute(5, 35, "This study requires version 8.0 or later.", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "error");
+        drawTextAbsolute(5, 20, "Click HERE to upgrade.@URL=http://www.esignal.com/download/default.asp", 
+            Color.white, Color.blue, Text.RELATIVETOBOTTOM|Text.RELATIVETOLEFT|Text.BOLD|Text.LEFT,
+            null, 13, "upgrade");
+        return b;
+    } else {
+        b = true;
+    }
+    return b;
+}
